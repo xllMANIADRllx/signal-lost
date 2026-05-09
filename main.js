@@ -18,7 +18,7 @@ function createWindow() {
     }
   })
 
-  win.loadFile('signallost_v3.html')
+  win.loadFile('index.html')
   win.setMenuBarVisibility(false)
 
   globalShortcut.register('F11', () => {
