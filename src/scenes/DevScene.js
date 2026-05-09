@@ -1,4 +1,7 @@
-// ═══ DEVSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// DEVSCENE
+// ═══════════════════════════════════════════════════════════
+
 class DevScene extends Phaser.Scene{
   constructor(){super('DevScene');}
 

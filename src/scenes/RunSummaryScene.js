@@ -1,4 +1,7 @@
-// ═══ RUNSUMMARYSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// RUNSUMMARYSCENE
+// ═══════════════════════════════════════════════════════════
+
 class RunSummaryScene extends Phaser.Scene{
   constructor(){super('RunSummaryScene');}
 
@@ -219,4 +222,3 @@ class RunSummaryScene extends Phaser.Scene{
     });
   }
 }
-

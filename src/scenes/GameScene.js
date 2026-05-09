@@ -1,4 +1,7 @@
-// ═══ GAMESCENE ═══
+// ═══════════════════════════════════════════════════════════
+// GAMESCENE
+// ═══════════════════════════════════════════════════════════
+
 class GameScene extends Phaser.Scene{
   constructor(){super('GameScene');}
 
@@ -2643,6 +2646,7 @@ class GameScene extends Phaser.Scene{
 
   // ─── MAIN UPDATE ─────────────────────────────────────────
   update(_,delta){
+    this.banner.update();
     if(this._dead||this.paused||this._devOpen)return;
     const dt=Math.min(delta/1000,0.05);
     this.t+=dt;this.comboT-=dt;if(this.comboT<=0)this.combo=0;
@@ -7962,4 +7966,3 @@ function _applyRenderScale(){
     });
   }catch(e){}
 }
-

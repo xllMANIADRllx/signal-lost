@@ -1,4 +1,7 @@
-// ═══ CODEXSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// CODEXSCENE
+// ═══════════════════════════════════════════════════════════
+
 class CodexScene extends Phaser.Scene{
   constructor(){super('CodexScene');}
   create(){
@@ -588,4 +591,3 @@ function getDailyChallenges(){
   const shuffled=[...POOL].sort(()=>rng()-0.5);
   return shuffled.slice(0,3);
 }
-

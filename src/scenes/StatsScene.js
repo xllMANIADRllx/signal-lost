@@ -1,4 +1,7 @@
-// ═══ STATSSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// STATSSCENE
+// ═══════════════════════════════════════════════════════════
+
 class StatsScene extends Phaser.Scene{
   constructor(){super('StatsScene');}
   create(d){
@@ -127,5 +130,3 @@ class StatsScene extends Phaser.Scene{
     }catch(err){console.error('[STATS SCENE]',err);}
   }
 }
-
-

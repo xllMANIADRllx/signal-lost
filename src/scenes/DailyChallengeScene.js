@@ -1,4 +1,7 @@
-// ═══ DAILYCHALLENGESCENE ═══
+// ═══════════════════════════════════════════════════════════
+// DAILYCHALLENGESCENE
+// ═══════════════════════════════════════════════════════════
+
 class DailyChallengeScene extends Phaser.Scene{
   constructor(){super('DailyChallengeScene');}
   create(){

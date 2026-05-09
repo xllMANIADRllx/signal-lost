@@ -1,4 +1,7 @@
-// ═══ ARCHETYPESELECTSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// ARCHETYPESELECTSCENE
+// ═══════════════════════════════════════════════════════════
+
 class ArchetypeSelectScene extends Phaser.Scene{
   constructor(){super('ArchetypeSelectScene');}
   create(d){

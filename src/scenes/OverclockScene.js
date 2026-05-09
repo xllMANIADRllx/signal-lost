@@ -1,4 +1,7 @@
-// ═══ OVERCLOCKSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// OVERCLOCKSCENE
+// ═══════════════════════════════════════════════════════════
+
 class OverclockScene extends Phaser.Scene{
   constructor(){super('OverclockScene');}
   create(data){
@@ -122,4 +125,3 @@ class OverclockScene extends Phaser.Scene{
     }});
   }
 }
-

@@ -1,4 +1,7 @@
-// ═══ CORRUPTEDBRIEFINGSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// CORRUPTEDBRIEFINGSCENE
+// ═══════════════════════════════════════════════════════════
+
 class CorruptedBriefingScene extends Phaser.Scene{
   constructor(){super('CorruptedBriefingScene');}
   create(d){
@@ -55,4 +58,3 @@ class CorruptedBriefingScene extends Phaser.Scene{
     contBg.on('pointerdown',contFn);
   }
 }
-

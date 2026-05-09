@@ -1,4 +1,7 @@
-// ═══ METAUPGRADESCENE ═══
+// ═══════════════════════════════════════════════════════════
+// METAUPGRADESCENE
+// ═══════════════════════════════════════════════════════════
+
 class MetaUpgradeScene extends Phaser.Scene{
   constructor(){super('MetaUpgradeScene');}
   create(){
@@ -337,4 +340,3 @@ class MetaUpgradeScene extends Phaser.Scene{
     });
   }
 }
-

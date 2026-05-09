@@ -1,4 +1,7 @@
-// ═══ BOSSCUTSCENESCENE ═══
+// ═══════════════════════════════════════════════════════════
+// BOSSCUTSCENESCENE
+// ═══════════════════════════════════════════════════════════
+
 class BossCutsceneScene extends Phaser.Scene{
   constructor(){super('BossCutsceneScene');}
   create(d){
@@ -29,3 +32,7 @@ class BossCutsceneScene extends Phaser.Scene{
     });
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════

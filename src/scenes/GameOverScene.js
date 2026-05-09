@@ -1,4 +1,7 @@
-// ═══ GAMEOVERSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// GAMEOVERSCENE
+// ═══════════════════════════════════════════════════════════
+
 class GameOverScene extends Phaser.Scene{
   constructor(){super('GameOverScene');}
   _terminateToMenu(){

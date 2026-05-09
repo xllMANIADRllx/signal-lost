@@ -1,4 +1,7 @@
-// ═══ BOOTSCENE ═══
+// ═══════════════════════════════════════════════════════════
+// BOOTSCENE
+// ═══════════════════════════════════════════════════════════
+
 class BootScene extends Phaser.Scene{
   constructor(){super('BootScene');}
 
