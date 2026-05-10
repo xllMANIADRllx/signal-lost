@@ -1,7 +1,7 @@
 {
   "name": "signal-lost",
-  "version": "1.3.4",
-  "description": "Signal Lost — Rogue AI Containment Failure",
+  "version": "1.3.5",
+  "description": "Signal Lost \u2014 Rogue AI Containment Failure",
   "author": "xllMANIADRllx",
   "main": "main.js",
   "scripts": {
@@ -40,7 +40,12 @@
       "index.html",
       "src/**/*",
       "main.js",
-      "preload.js"
+      "preload.js",
+      "assets/**/*",
+      "phaser.min.js",
+      "icon.ico",
+      "icon.icns",
+      "icon.png"
     ]
   },
   "dependencies": {
