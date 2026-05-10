@@ -1,2 +1,0 @@
-// ═══ VOICE SYSTEM ═══
-const Voice={say(t){if(!Settings.get('voice')||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=0.78;u.pitch=0.15;u.volume=0.45;speechSynthesis.speak(u);}};

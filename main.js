@@ -66,6 +66,12 @@ function createWindow() {
   ipcMain.on('open-releases', () => {
     shell.openExternal('https://github.com/xllMANIADRllx/signal-lost/releases/latest')
   })
+  ipcMain.on('set-fullscreen', (_, flag) => {
+    win.setFullScreen(flag)
+  })
+  ipcMain.on('set-brightness', (_, value) => {
+    win.webContents.insertCSS(`canvas { filter: brightness(${value}); }`)
+  })
 }
 
 app.whenReady().then(createWindow)

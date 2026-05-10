@@ -205,11 +205,74 @@ class SettingsScene extends Phaser.Scene{
       pills('HUD_MARGIN', 'Safe zone from screen edges (px)',
         [4,8,12,18,24],['4px','8px','12px','18px','24px'],'hud_margin');
     } else if(cat==='display'){
-      pills('CANVAS_SCALE',  'Sharpness rendering mode',
+      pills('CANVAS_SCALE', 'Sharpness rendering mode',
         [0.5,1,2],['CRISP','SMOOTH','SHARP'],'render_scale',
         (a,b)=>Math.abs(a-b)<0.1);
-      pills('WINDOW_MODE', 'Toggle fullscreen display',
-        [false,true],['WINDOWED','FULLSCREEN'],'fullscreen');
+
+      // ── Fullscreen — simple toggle ──
+      {
+        const on=Settings.get('fullscreen')||false;
+        const rowBg=this._reg(this.add.rectangle(RP+RW/2,y,RW,RH,0x040d06,0.97).setOrigin(0.5,0));
+        rowBg.setStrokeStyle(1,acolN,0.25);
+        this._reg(this.add.rectangle(RP,y,3,RH,acolN,0.6).setOrigin(0,0));
+        this._reg(this.add.rectangle(RP,y,RW,3,acolN,0.4).setOrigin(0,0));
+        this._reg(this.add.text(RP+14,y+10,'FULLSCREEN',{fontFamily:"'Courier New',monospace",fontSize:'13px',fontStyle:'bold',color:acol}));
+        this._reg(this.add.text(RP+14,y+30,'Toggle fullscreen window mode',{fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#4477aa'}));
+        const trkBg=this._reg(this.add.rectangle(RP+RW-50,y+RH/2,60,24,on?acolN:0x0a1218,on?0.18:0.9).setStrokeStyle(1.5,acolN,on?0.9:0.3));
+        const knob=this._reg(this.add.circle(on?RP+RW-26:RP+RW-62,y+RH/2,10,on?acolN:0x334455));
+        const lbl=this._reg(this.add.text(on?RP+RW-63:RP+RW-26,y+RH/2,on?'ON':'OFF',{fontFamily:"'Courier New',monospace",fontSize:'8px',color:on?acol:'#445566'}).setOrigin(0.5));
+        rowBg.setInteractive({useHandCursor:true});
+        rowBg.on('pointerover',()=>rowBg.setFillStyle(acolN,0.08));
+        rowBg.on('pointerout', ()=>rowBg.setFillStyle(0x040d06,0.97));
+        rowBg.on('pointerdown',()=>{
+          const nv=!Settings.get('fullscreen');
+          Settings.set('fullscreen',nv);
+          trkBg.setFillStyle(nv?acolN:0x0a1218,nv?0.18:0.9).setStrokeStyle(1.5,acolN,nv?0.9:0.3);
+          knob.setX(nv?RP+RW-26:RP+RW-62).setFillStyle(nv?acolN:0x334455);
+          lbl.setX(nv?RP+RW-63:RP+RW-26).setText(nv?'ON':'OFF').setColor(nv?acol:'#445566');
+          try{
+            if(window.electronAPI&&window.electronAPI.setFullscreen){window.electronAPI.setFullscreen(nv);}
+            else{if(nv)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();else document.exitFullscreen&&document.exitFullscreen();}
+          }catch{}
+        });
+        y+=RH+GAP;
+      }
+
+      // ── Brightness slider — default 1.5 (max) ──
+      {
+        const bRH=58;
+        this._reg(this.add.rectangle(RP+RW/2,y,RW,bRH,0x040d06,0.97).setOrigin(0.5,0)).setStrokeStyle(1,acolN,0.25);
+        this._reg(this.add.rectangle(RP,y,3,bRH,acolN,0.6).setOrigin(0,0));
+        this._reg(this.add.rectangle(RP,y,RW,3,acolN,0.4).setOrigin(0,0));
+        this._reg(this.add.text(RP+14,y+10,'BRIGHTNESS',{fontFamily:"'Courier New',monospace",fontSize:'13px',fontStyle:'bold',color:acol}));
+        this._reg(this.add.text(RP+14,y+30,'Screen brightness · 50% – 150%',{fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#4477aa'}));
+        const TW=260,TX=RP+RW-TW-60;
+        const bMin=0.5,bMax=1.5;
+        let bVal=Settings.get('brightness');
+        if(bVal===undefined||bVal===null)bVal=1.5;
+        const bTrack=this._reg(this.add.rectangle(TX+TW/2,y+bRH/2,TW,6,0x0d1a22,1).setStrokeStyle(1,acolN,0.3).setInteractive({useHandCursor:true}));
+        const bFill=this._reg(this.add.rectangle(TX,y+bRH/2,TW*((bVal-bMin)/(bMax-bMin)),6,acolN,0.6).setOrigin(0,0.5));
+        const bKnob=this._reg(this.add.circle(TX+TW*((bVal-bMin)/(bMax-bMin)),y+bRH/2,7,acolN));
+        const bPct=this._reg(this.add.text(RP+RW-12,y+bRH/2,`${Math.round(bVal/bMax*100)}%`,{fontFamily:"'Courier New',monospace",fontSize:'11px',color:acol}).setOrigin(1,0.5));
+        const applyBrightness=(v)=>{
+          try{
+            if(window.electronAPI&&window.electronAPI.setBrightness){window.electronAPI.setBrightness(v.toFixed(2));}
+            else{document.querySelectorAll('canvas').forEach(c=>c.style.filter=`brightness(${v.toFixed(2)})`);}
+          }catch{}
+        };
+        const updB=(px)=>{
+          const f=Phaser.Math.Clamp((px-TX)/TW,0,1);
+          const v=bMin+f*(bMax-bMin);
+          bFill.width=TW*f; bKnob.x=TX+TW*f;
+          bPct.setText(`${Math.round(f*100)}%`);
+          Settings.set('brightness',v);
+          applyBrightness(v);
+        };
+        bTrack.on('pointerdown',p=>updB(p.x));
+        bTrack.on('pointermove',p=>{if(p.isDown)updB(p.x);});
+        applyBrightness(bVal);
+        y+=bRH+GAP;
+      }
     }
   }
 }

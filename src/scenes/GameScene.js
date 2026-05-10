@@ -278,7 +278,11 @@ class GameScene extends Phaser.Scene{
       }
       CRT.inGame=true; // restore cursor on resume
     try{Snd.startGameMusic();}catch{}
-      if(d.bossReady)this._spawnBossNow();
+      if(d.bossReady){
+        const _bossN=(Math.floor(this.wave/5)-1)%4+1;
+        try{Snd.startBossMusic(_bossN);}catch{}
+        this._spawnBossNow();
+      }
       if(d.fromSettings){
         this.paused=false;this._drawPauseOverlay(false);
         if(window._hudRebuildNeeded){
@@ -1121,7 +1125,8 @@ class GameScene extends Phaser.Scene{
   _spawnEndlessBoss(){
     try{
       this.bossWave=true;
-    try{Snd.startBossMusic();}catch{}
+    const _bossNum1=(Math.floor(this.wave/5)-1)%4+1;
+    try{Snd.startBossMusic(_bossNum1);}catch{}
       const def=this._getBossDef();
       const li=LORE.findIndex(l=>l.boss===def.name||l.boss===def.baseName);
       this.banner.show(`BOSS_INCOMING: ${def.name}`,'#ff2244',2000,'DEFEND POSITION');
@@ -2646,7 +2651,6 @@ class GameScene extends Phaser.Scene{
 
   // ─── MAIN UPDATE ─────────────────────────────────────────
   update(_,delta){
-    this.banner.update();
     if(this._dead||this.paused||this._devOpen)return;
     const dt=Math.min(delta/1000,0.05);
     this.t+=dt;this.comboT-=dt;if(this.comboT<=0)this.combo=0;
@@ -7827,7 +7831,7 @@ class GameScene extends Phaser.Scene{
       this.gfxHud.fillStyle(0xff2200,1);this.gfxHud.fillRoundedRect(BX1,BY,BW2,BH,3);
       this.gfxHud.lineStyle(2,0xff6600,f);this.gfxHud.strokeRoundedRect(BX1,BY,BW2,BH,3);
       if(!this.txtOverheat)this.txtOverheat=this.add.text(BX1+BW2/2,BY-2,'OVH',{fontFamily:"'Courier New',monospace",fontSize:'8px',color:'#ff6600'}).setOrigin(0.5,1).setDepth(12);
-      this.txtOverheat.setVisible(true).setColor(f>0.75?'#ffff00':'#ff6600');
+      if(this.txtOverheat&&this.txtOverheat.active)this.txtOverheat.setVisible(true).setColor(f>0.75?'#ffff00':'#ff6600');
     } else {
       if(this.txtOverheat)this.txtOverheat.setVisible(false);
       if(heat>0){

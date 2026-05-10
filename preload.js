@@ -7,5 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onAppPlatform: (callback) => ipcRenderer.on('app-platform', (_event, platform) => callback(platform)),
   onUpdateStatus: (callback) => ipcRenderer.on('update-status', (_event, message) => callback(message)),
   onMacUpdateAvailable: (callback) => ipcRenderer.on('mac-update-available', (_event, version) => callback(version)),
-  openReleases: () => ipcRenderer.send('open-releases')
+  openReleases:    () => ipcRenderer.send('open-releases'),
+  setFullscreen:   (flag)  => ipcRenderer.send('set-fullscreen', flag),
+  setBrightness:   (value) => ipcRenderer.send('set-brightness', value),
 })

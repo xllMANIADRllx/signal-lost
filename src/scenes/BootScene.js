@@ -7,6 +7,15 @@ class BootScene extends Phaser.Scene{
 
   create(data){
     CRT.suppress=true;
+    // Apply saved brightness on launch
+    try{
+      const bv=parseFloat(Settings.get('brightness')!==undefined?Settings.get('brightness'):1.5).toFixed(2);
+      if(window.electronAPI&&window.electronAPI.setBrightness){
+        window.electronAPI.setBrightness(bv);
+      } else {
+        document.querySelectorAll('canvas').forEach(c=>c.style.filter=`brightness(${bv})`);
+      }
+    }catch{}
     try{
       this.cameras.main.setBackgroundColor('#020804');
       this.cameras.main.fadeIn(280,0,0,0);

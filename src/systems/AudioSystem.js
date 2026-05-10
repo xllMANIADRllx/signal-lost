@@ -26,8 +26,86 @@ const Snd = {
     this.master = this.ctx.createGain(); this.master.gain.value = 0.65; this.master.connect(this.ctx.destination);
     this.music  = this.ctx.createGain(); this.music.gain.value  = Settings.get('music'); this.music.connect(this.master);
     this.sfx    = this.ctx.createGain(); this.sfx.gain.value    = Settings.get('sfx');   this.sfx.connect(this.master);
+
+    // ── SFX buffers ──
+    this._sfxBuffer = {};
+    const SFX_FILES = ['reflect','chain','kill','death','boss','surge','shield',
+      'powerup','install','archetype','echo_hit','fragment','split','volatile',
+      'phase','rage','hit','shoot','laser'];
+    SFX_FILES.forEach(name => {
+      fetch(`assets/sfx/${name}.wav`)
+        .then(r => r.arrayBuffer())
+        .then(buf => this.ctx.decodeAudioData(buf))
+        .then(decoded => { this._sfxBuffer[name] = decoded; })
+        .catch(() => {});
+    });
+
+    // ── Real music tracks ──
+    this._trackSource = null;
+    this._trackBuffer = { menu: null, shop: null, network: null, codex: null, game1: null, game2: null, game3: null, game4: null, boss1: null, boss2: null, boss3: null, boss4: null };
+    this._currentTrack = null;
+    this._loadTrack('menu',    'assets/music/menu.wav');
+    this._loadTrack('shop',    'assets/music/shop.wav');
+    this._loadTrack('network', 'assets/music/network.wav');
+    this._loadTrack('codex',   'assets/music/codex.wav');
+    this._loadTrack('game1',   'assets/music/game1.wav');
+    this._loadTrack('game2',   'assets/music/game2.wav');
+    this._loadTrack('game3',   'assets/music/game3.wav');
+    this._loadTrack('game4',   'assets/music/game4.wav');
+    this._loadTrack('boss1',   'assets/music/boss1.wav');
+    this._loadTrack('boss2',   'assets/music/boss2.wav');
+    this._loadTrack('boss3',   'assets/music/boss3.wav');
+    this._loadTrack('boss4',   'assets/music/boss4.wav');
+
     this._startMenuMusic();
     this._sched();
+  },
+
+  // ── Load a track into buffer ──
+  _loadTrack(name, path) {
+    fetch(path)
+      .then(r => r.arrayBuffer())
+      .then(buf => this.ctx.decodeAudioData(buf))
+      .then(decoded => {
+        this._trackBuffer[name] = decoded;
+        // If we are already supposed to be playing this track, start it now
+        if (this._pendingTrack === name) { this._pendingTrack = null; this._playTrack(name); }
+        // If this is the menu track and menu is currently running procedurally, switch to real
+        if (name === 'menu' && this._mode === 'menu' && !this._currentTrack) {
+          this._stopMenuMusic(); this._playTrack('menu');
+        }
+        // If this is a game track and game is running without a track, play it
+        if (name.startsWith('game') && this._mode === 'game' && !this._currentTrack) {
+          this._playTrack(name);
+        }
+        // If this is a boss track and we are waiting for it
+        if (name.startsWith('boss') && this._mode === 'boss' && this._pendingBossTrack === name && !this._currentTrack) {
+          this._pendingBossTrack = null; this._playTrack(name);
+        }
+      })
+      .catch(() => {}); // fallback to procedural if file missing
+  },
+
+  // ── Play a looping track ──
+  _playTrack(name) {
+    if (!this.ctx || !this._trackBuffer[name]) { this._pendingTrack = name; return; }
+    this._stopTrack();
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._trackBuffer[name];
+    src.loop   = true;
+    src.connect(this.music);
+    src.start();
+    this._trackSource  = src;
+    this._currentTrack = name;
+  },
+
+  // ── Stop current track ──
+  _stopTrack() {
+    if (this._trackSource) {
+      try { this._trackSource.stop(); } catch {}
+      this._trackSource  = null;
+      this._currentTrack = null;
+    }
   },
 
   // ── Oscillator helper ──
@@ -72,6 +150,8 @@ const Snd = {
   _startMenuMusic() {
     this._mode = 'menu'; this.bpm = 70; this.beat = 0;
     this._stopNodes(this._padNodes);
+    // Use real WAV if loaded, else fall through to procedural
+    if (this._trackBuffer && this._trackBuffer['menu']) { this._playTrack('menu'); return; }
     const subFilt = this.ctx.createBiquadFilter(); subFilt.type = 'lowpass'; subFilt.frequency.value = 120;
     const subG   = this.ctx.createGain(); subG.gain.value = 0.12;
     const subOsc = this.ctx.createOscillator(); subOsc.type = 'sine'; subOsc.frequency.value = 36.7;
@@ -92,23 +172,45 @@ const Snd = {
 
   startGameMusic() {
     if (!this.ready) return;
+    // Don't restart if already playing a game track
+    if (this._currentTrack && this._currentTrack.startsWith('game')) return;
     this._stopMenuMusic();
+    this._stopTrack();
     this._mode = 'game'; this.bpm = 138; this.beat = 0;
+    // Pick a random available game track
+    const available = ['game1','game2','game3','game4'].filter(k => this._trackBuffer[k]);
+    if (available.length > 0) {
+      const pick = available[Math.floor(Math.random() * available.length)];
+      this._playTrack(pick);
+    }
   },
 
-  startBossMusic() {
+  startBossMusic(bossNum) {
     if (!this.ready || this._mode === 'boss') return;
     this._mode = 'boss'; this.bpm = 155; this.beat = 0;
     this._stopNodes(this._padNodes); this._padNodes = [];
+    this._stopTrack();
+    // Pick track by boss number (1-4), fallback to boss1
+    const n = bossNum || 1;
+    const key = `boss${n}`;
+    if (this._trackBuffer && this._trackBuffer[key]) {
+      this._playTrack(key);
+    } else {
+      // Not loaded yet — mark as pending
+      this._pendingBossTrack = key;
+    }
   },
 
   stopBossMusic() {
     if (!this.ready || this._mode !== 'boss') return;
     this._mode = 'game'; this.bpm = 138;
+    this._stopTrack();
+    if (this._trackBuffer && this._trackBuffer['game']) { this._playTrack('game'); }
   },
 
   returnToMenu() {
     if (!this.ready) return;
+    this._stopTrack();
     this._mode = 'menu'; this.bpm = 70; this.beat = 0;
     this._startMenuMusic();
   },
@@ -116,6 +218,47 @@ const Snd = {
   // Legacy alias used by GameScene
   _startMenuMusic_resume() {
     this.returnToMenu();
+  },
+
+  // ── Scene-specific music with fade ──
+  startSceneMusic(name) {
+    if (!this.ready) return;
+    if (this._currentTrack === name) return;
+    // Fade out current track, fade in new one
+    if (this._trackSource) {
+      const gain = this.music.gain;
+      const now = this.ctx.currentTime;
+      const prev = gain.value;
+      gain.setTargetAtTime(0, now, 0.4);
+      setTimeout(() => {
+        this._stopTrack();
+        if (this._trackBuffer && this._trackBuffer[name]) {
+          this._playTrack(name);
+          this.music.gain.setValueAtTime(0, this.ctx.currentTime);
+          this.music.gain.setTargetAtTime(prev, this.ctx.currentTime, 0.5);
+        }
+      }, 600);
+    } else {
+      if (this._trackBuffer && this._trackBuffer[name]) {
+        this._playTrack(name);
+      }
+    }
+  },
+
+  stopSceneMusic() {
+    if (!this.ready) return;
+    // Fade out and return to menu music
+    if (this._trackSource) {
+      const gain = this.music.gain;
+      const prev = gain.value;
+      gain.setTargetAtTime(0, this.ctx.currentTime, 0.4);
+      setTimeout(() => {
+        this._stopTrack();
+        this._startMenuMusic();
+        this.music.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.music.gain.setTargetAtTime(prev, this.ctx.currentTime, 0.5);
+      }, 600);
+    }
   },
 
   // ── Beat scheduler ──
@@ -136,6 +279,8 @@ const Snd = {
   },
 
   _beat(t, b) {
+    // Skip procedural when real WAV track is playing
+    if (this._currentTrack) return;
     if (this._mode === 'menu') this._beatMenu(t, b);
     else if (this._mode === 'game') this._beatGame(t, b);
     else if (this._mode === 'boss') this._beatBoss(t, b);
@@ -179,9 +324,18 @@ const Snd = {
     { const hv = s % 2 === 0 ? v * 0.18 : v * 0.1; const o = this.ctx.createOscillator(), g = this.ctx.createGain(), fi = this.ctx.createBiquadFilter(); o.type = 'square'; o.frequency.value = 10000; fi.type = 'highpass'; fi.frequency.value = 8000; g.gain.setValueAtTime(hv, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04); o.connect(fi); fi.connect(g); g.connect(this.music); o.start(t); o.stop(t + 0.06); }
   },
 
-  // ── SFX ──
+  // ── SFX — plays real WAV if loaded, else falls back to procedural ──
   play(type) {
     if (!this.ready) return;
+    // Try real WAV first
+    if (this._sfxBuffer && this._sfxBuffer[type]) {
+      const src = this.ctx.createBufferSource();
+      src.buffer = this._sfxBuffer[type];
+      src.connect(this.sfx);
+      src.start();
+      return;
+    }
+    // Procedural fallback
     const now = this.ctx.currentTime;
     const sfx = this.sfx;
     switch (type) {
@@ -203,6 +357,9 @@ const Snd = {
       case 'echo_hit':  this._osc('sine', 880, 0.08, sfx, now, now + 0.05, 440); break;
       case 'modifier':  [220,180].forEach((f,i) => this._osc('sawtooth', f, 0.3, sfx, now + i * 0.15, now + i * 0.15 + 0.25, f * 0.4)); break;
       case 'install':   this._osc('square', 660, 0.15, sfx, now, now + 0.06); this._osc('sine', 880, 0.2, sfx, now + 0.06, now + 0.18); this._osc('sine', 1100, 0.15, sfx, now + 0.14, now + 0.26); break;
+      case 'hit':       this._osc('square', 220, 0.18, sfx, now, now + 0.06, 110); break;
+      case 'shoot':     this._osc('square', 330, 0.12, sfx, now, now + 0.04, 165); break;
+      case 'laser':     this._osc('sine', 1200, 0.15, sfx, now, now + 0.08, 400); break;
     }
   },
 
