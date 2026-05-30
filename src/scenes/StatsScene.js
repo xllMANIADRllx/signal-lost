@@ -109,8 +109,8 @@ class StatsScene extends Phaser.Scene{
       }
       if(d.waveModifier&&d.waveModifier!=='NONE'){
         ry+=6;
-        const MC={FAST:'#ff8800',DENSE:'#ff4400',ARMORED:'#ff2244',VOLATILE:'#aa44ff',DARK:'#4488ff',OVERLOAD:'#ffdd44',FRAGILE:'#ff88aa',MINIBOSS:'#ffaa00',ENCORE:'#00ffcc'};
-        const HL={FAST:'OVERCLOCK',DENSE:'FLOOD',ARMORED:'HARDENED',VOLATILE:'UNSTABLE',DARK:'BLACKOUT',OVERLOAD:'OVERLOAD',FRAGILE:'FRAGMENTED',MINIBOSS:'ELITE_PROC',ENCORE:'ENCORE'};
+        const MC={FAST:'#ff8800',DENSE:'#ff4400',ARMORED:'#ff2244',VOLATILE:'#aa44ff',DARK:'#4488ff',OVERLOAD:'#ffdd44',FRAGILE:'#ff88aa',MINIBOSS:'#ffaa00',ENCORE:'#00ffcc',SURGE:'#ff44ff',BOUNTY:'#44ffaa',FRACTURED:'#ffaa44'};
+        const HL={FAST:'OVERCLOCK',DENSE:'FLOOD',ARMORED:'HARDENED',VOLATILE:'UNSTABLE',DARK:'BLACKOUT',OVERLOAD:'OVERLOAD',FRAGILE:'FRAGMENTED',MINIBOSS:'ELITE_PROC',ENCORE:'ENCORE',SURGE:'DATA_SURGE',BOUNTY:'BOUNTY_WAVE',FRACTURED:'PROCESS_FRACTURE'};
         const mc=MC[d.waveModifier]||'#ff4444';
         const mcN=parseInt(mc.replace('#',''),16);
         this.add.rectangle(CX2,ry,W/2-30,28,mcN,0.10).setOrigin(0,0);

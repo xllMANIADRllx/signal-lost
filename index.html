@@ -24,14 +24,20 @@ canvas { cursor: none !important; }
 
 <!-- Data -->
 <script src="src/data/settings.js"></script>
+<script src="src/data/shards.js"></script>
 <script src="src/data/save.js"></script>
 <script src="src/data/difficulty.js"></script>
+<script src="src/data/ascension.js"></script>
+<script src="src/data/sideObjectives.js"></script>
 <script src="src/data/ships.js"></script>
 <script src="src/data/upgrades.js"></script>
 <script src="src/data/enemies.js"></script>
 <script src="src/data/lore.js"></script>
 <script src="src/data/metaUpgrades.js"></script>
 <script src="src/data/archetypes.js"></script>
+<script src="src/data/archetypeMastery.js"></script>
+<script src="src/data/powerMastery.js"></script>
+<script src="src/data/worldState.js"></script>
 
 <!-- Systems -->
 <script src="src/systems/AudioSystem.js"></script>
@@ -56,6 +62,7 @@ canvas { cursor: none !important; }
 <script src="src/scenes/DailyChallengeScene.js"></script>
 <script src="src/scenes/DevScene.js"></script>
 <script src="src/scenes/ArchetypeSelectScene.js"></script>
+<script src="src/scenes/ForgeScene.js"></script>
 <script src="src/scenes/MetaUpgradeScene.js"></script>
 <script src="src/scenes/CorruptedBriefingScene.js"></script>
 <script src="src/scenes/OverclockScene.js"></script>
@@ -65,156 +72,133 @@ canvas { cursor: none !important; }
 <script src="src/scenes/BossCutsceneScene.js"></script>
 <script src="src/scenes/SettingsScene.js"></script>
 <script src="src/scenes/StatsScene.js"></script>
+<script src="src/scenes/AchievementsScene.js"></script>
 <script src="src/scenes/GameScene.js"></script>
+
+<!-- Runtime patches (gated by Save flag) -->
+<script src="src/systems/ArchetypeUnify.js"></script>
+
+<!-- DEMO MODE — remove this line to revert to full game -->
+<script src="src/systems/DemoMode.js"></script>
 
 <!-- Bootstrap -->
 <script src="src/main.js"></script>
 
-<!-- Update splash screen — driven by Electron autoUpdater -->
+<!-- Boot splash — ASCII decrypt reveal. Updates run silently in background. -->
 <style>
 #updateSplash{
   display:flex;position:fixed;top:0;left:0;width:100%;height:100%;
   background:#000000;z-index:99999;
   flex-direction:column;justify-content:center;align-items:center;
   font-family:'Courier New',monospace;
-  transition:opacity 0.6s ease;
+  transition:opacity 0.55s ease;
 }
 #updateSplash.fade-out{opacity:0;pointer-events:none;}
-.uTitle{color:#00ff66;font-size:28px;font-weight:bold;letter-spacing:6px;margin-bottom:8px;}
-.uSub{color:#224433;font-size:11px;letter-spacing:2px;margin-bottom:32px;}
-.uStatus{font-size:13px;min-height:20px;margin-bottom:16px;transition:color 0.3s;}
-.uBarTrack{width:420px;height:3px;background:#001a00;position:relative;overflow:hidden;}
-.uBarFill{height:100%;width:0%;transition:width 0.3s ease;position:absolute;top:0;left:0;}
-.uBarFill.pulse{animation:barPulse 0.8s ease-in-out infinite;}
-@keyframes barPulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
-.uCountdown{color:#ffdd00;font-size:12px;margin-top:12px;min-height:18px;}
-.uPid{color:#1a3322;font-size:10px;margin-top:24px;letter-spacing:1px;}
+.uTitle{
+  color:#00ff66;font-size:34px;font-weight:bold;letter-spacing:10px;
+  text-shadow:0 0 12px rgba(0,255,102,0.35);
+  display:flex;gap:2px;margin-bottom:14px;
+}
+.uChar{display:inline-block;min-width:0.62em;text-align:center;color:#1a4422;transition:color 0.15s,text-shadow 0.15s;}
+.uChar.locked{color:#00ff66;text-shadow:0 0 8px rgba(0,255,102,0.55);}
+#uVersion{
+  color:#336644;font-size:13px;letter-spacing:4px;margin-bottom:6px;
+  opacity:0;transition:opacity 0.5s ease 0.05s;
+}
+.uSub{
+  color:#224433;font-size:11px;letter-spacing:3px;
+  opacity:0;transition:opacity 0.5s ease 0.15s;
+}
 </style>
 
 <div id="updateSplash">
-  <div class="uTitle">SIGNAL_LOST.EXE</div>
-  <div id="uVersion" style="color:#336644;font-size:13px;letter-spacing:3px;margin-bottom:4px;">v...</div>
+  <div class="uTitle" id="uTitle"></div>
+  <div id="uVersion">v...</div>
   <div class="uSub">ROGUE AI CONTAINMENT PROTOCOL</div>
-  <div id="uStatus" class="uStatus" style="color:#00cc66;">&gt; INITIALISING...</div>
-  <div class="uBarTrack"><div id="uBar" class="uBarFill" style="background:#00cc66;"></div></div>
-  <div id="uCountdown" class="uCountdown"></div>
-  <div class="uPid" id="uPid"></div>
 </div>
 
 <script>
 (function(){
-  const splash   = document.getElementById('updateSplash');
-  const uStatus  = document.getElementById('uStatus');
-  const uBar     = document.getElementById('uBar');
-  const uCountdown = document.getElementById('uCountdown');
-  const uPid     = document.getElementById('uPid');
-
-  // Random PID for flavour
-  uPid.textContent = 'PID: 0x' + Math.floor(Math.random()*0xFFFF).toString(16).toUpperCase().padStart(4,'0') + '  ·  ELECTRON v35  ·  WIN32 x64';
-
-  function setBar(pct, col, pulse){
-    uBar.style.width = pct + '%';
-    uBar.style.background = col || '#00cc66';
-    uBar.classList.toggle('pulse', !!pulse);
-  }
+  const splash    = document.getElementById('updateSplash');
+  const titleEl   = document.getElementById('uTitle');
+  const versionEl = document.getElementById('uVersion');
+  const subEl     = document.querySelector('.uSub');
 
   function dismiss(){
     splash.classList.add('fade-out');
-    setTimeout(()=>{ splash.style.display='none'; }, 650);
+    setTimeout(()=>{ splash.style.display='none'; }, 600);
   }
 
-  // Idle loop — animate bar slowly while waiting
-  let idlePct=0;
-  const idleIv=setInterval(()=>{
-    idlePct=Math.min(idlePct+Math.random()*6,72);
-    setBar(idlePct,'#00cc66',false);
-    uStatus.textContent='> CHECKING FOR UPDATES...';
-    uStatus.style.color='#00cc66';
-    if(idlePct>=72)clearInterval(idleIv);
-  },150);
+  // ─── ASCII decrypt animation ────────────────────────
+  const TITLE = 'SIGNAL_LOST.EXE';
+  const NOISE = '█▓▒░│┤├┴┼·#@%&?!*=◆◊◌◐◑▌▐';
+  const STANDBY_MS    = 2000;  // black-screen standby so fullscreen can settle
+  const LOCK_START_MS = 220;   // first char locks at this time (post-standby)
+  const LOCK_STEP_MS  = 110;   // delay between sequential lockups
+  const REVEAL_HOLD_MS = 900;  // hold fully-resolved screen before fade
 
-  let countdownIv=null;
+  // Pre-fill the title with noise so the screen isn't bare during standby
+  const charStates = [];
+  for(let i=0;i<TITLE.length;i++){
+    const span = document.createElement('span');
+    span.className = 'uChar';
+    span.textContent = NOISE[Math.floor(Math.random()*NOISE.length)];
+    titleEl.appendChild(span);
+    charStates.push({el:span, target:TITLE[i], locked:false});
+  }
+  // Hide the title during standby for a true blackout, then reveal at standby end
+  titleEl.style.opacity = '0';
+  titleEl.style.transition = 'opacity 0.25s ease';
 
-  function handleMessage(message){
-    if(message===null){
-      // null = up to date or error — dismiss
-      clearInterval(idleIv);
-      clearInterval(countdownIv);
-      setBar(100,'#00cc66',false);
-      uStatus.textContent='> UP TO DATE ✓';
-      uStatus.style.color='#00ff66';
-      uCountdown.textContent='';
-      setTimeout(dismiss, 800);
-      return;
-    }
+  setTimeout(()=>{
+    titleEl.style.opacity = '1';
 
-    if(message==='CHECKING FOR UPDATES...'){
-      uStatus.textContent='> CHECKING FOR UPDATES...';
-      uStatus.style.color='#00cc66';
-      setBar(idlePct,'#00cc66',false);
-
-    } else if(message==='UPDATE FOUND — DOWNLOADING...'){
-      clearInterval(idleIv);
-      uStatus.textContent='> UPDATE FOUND — DOWNLOADING...';
-      uStatus.style.color='#ffaa00';
-      setBar(85,'#ffaa00',true);
-      uCountdown.textContent='';
-
-    } else if(message.startsWith('DOWNLOADING UPDATE —')){
-      // Parse "DOWNLOADING UPDATE — XX%"
-      const match=message.match(/(\d+)%/);
-      const pct=match?parseInt(match[1]):0;
-      clearInterval(idleIv);
-      uStatus.textContent='> '+message;
-      uStatus.style.color='#ffaa00';
-      setBar(pct,'#ffaa00',false);
-      uCountdown.textContent=pct+'% complete';
-
-    } else if(message==='UPDATE READY — INSTALLING ON CLOSE'){
-      clearInterval(idleIv);
-      setBar(100,'#ffdd00',false);
-      uStatus.textContent='> UPDATE READY — INSTALLING ON CLOSE';
-      uStatus.style.color='#ffdd00';
-      // 3 second countdown
-      let secs=3;
-      uCountdown.textContent='> RESTARTING IN '+secs+'...';
-      countdownIv=setInterval(()=>{
-        secs--;
-        if(secs<=0){
-          clearInterval(countdownIv);
-          uCountdown.textContent='> RESTARTING NOW...';
-        } else {
-          uCountdown.textContent='> RESTARTING IN '+secs+'...';
+    // Shuffle noise on unlocked chars
+    const shuffleIv = setInterval(()=>{
+      let anyUnlocked = false;
+      for(const c of charStates){
+        if(!c.locked){
+          c.el.textContent = NOISE[Math.floor(Math.random()*NOISE.length)];
+          anyUnlocked = true;
         }
-      },1000);
+      }
+      if(!anyUnlocked) clearInterval(shuffleIv);
+    }, 55);
 
-    } else {
-      // Any other message — show it
-      clearInterval(idleIv);
-      uStatus.textContent='> '+message;
-      uStatus.style.color='#00cc66';
-    }
-  }
+    // Lock chars left-to-right
+    charStates.forEach((c, i)=>{
+      setTimeout(()=>{
+        c.locked = true;
+        c.el.textContent = c.target;
+        c.el.classList.add('locked');
+      }, LOCK_START_MS + i * LOCK_STEP_MS);
+    });
+
+    // Reveal version + subtitle once title is fully locked
+    const titleDoneMs = LOCK_START_MS + TITLE.length * LOCK_STEP_MS;
+    setTimeout(()=>{
+      versionEl.style.opacity = '1';
+      subEl.style.opacity = '1';
+    }, titleDoneMs);
+
+    // Dismiss after the reveal hold
+    setTimeout(dismiss, titleDoneMs + REVEAL_HOLD_MS);
+  }, STANDBY_MS);
+
+  // ─── Background update handling (silent) ────────────
+  // Updates still install on quit via Electron autoUpdater. The splash is
+  // not used to surface progress anymore — status is exposed on window
+  // for the menu to consume (e.g. a future "UPDATE READY" toast).
+  window._updateStatus = null;
 
   if(window.electronAPI){
-    // Receive version from main process
     window.electronAPI.onAppVersion((version)=>{
-      window._appVersion=version;
-      document.getElementById('uVersion').textContent='v'+version;
+      window._appVersion = version;
+      versionEl.textContent = 'v' + version;
     });
-    window.electronAPI.onUpdateStatus(handleMessage);
-    // Safety dismiss after 8s if no messages
-    setTimeout(()=>{
-      if(splash.style.display!=='none'&&!splash.classList.contains('fade-out')){
-        clearInterval(idleIv);dismiss();
-      }
-    },8000);
-  } else {
-    // Browser — no Electron, dismiss quickly
-    uStatus.textContent='> STANDALONE MODE';
-    uStatus.style.color='#336644';
-    setBar(100,'#336644',false);
-    setTimeout(dismiss,1000);
+    window.electronAPI.onUpdateStatus((message)=>{
+      window._updateStatus = message;
+    });
   }
 })();
 </script>

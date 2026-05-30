@@ -1,0 +1,389 @@
+═══════════════════════════════════════════════════════════════════════════════
+SIGNAL LOST — LAUNCH PLAN
+Reference doc covering: Steam asset pack, screenshots, trailer, GIFs,
+itch.io adjustments, code signing, distribution costs, and revenue estimates.
+═══════════════════════════════════════════════════════════════════════════════
+
+Last updated: drafted while planning Steam + itch.io launch.
+Pick this up later — everything you need to execute the store pages is here.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 1 — STEAM ASSET CHECKLIST (mandatory sizes)
+═══════════════════════════════════════════════════════════════════════════════
+
+| Asset                | Size           | Where it shows                         | Priority      |
+|----------------------|----------------|----------------------------------------|---------------|
+| Header capsule       | 460x215        | Front page promos, sale banners        | CRITICAL      |
+| Small capsule        | 231x87         | Search results, library                | CRITICAL      |
+| Main capsule         | 616x353        | Featured & Recommended carousel        | High          |
+| Vertical capsule     | 374x448        | Sale events, dailies                   | Medium        |
+| Library capsule      | 600x900        | User's library tile                    | High          |
+| Library hero         | 3840x1240      | Top of library page                    | Medium        |
+| Library logo         | 1280x720 PNG   | Overlays library hero (transparent)    | Medium        |
+| Page background      | 1438x810       | Behind store page                      | Low           |
+| Screenshots          | 1920x1080      | Main store page (min 5, ideal 8-12)    | CRITICAL      |
+| Trailer              | 1080p 30-90s   | Auto-plays above screenshots           | CRITICAL      |
+
+REALITY CHECK: header capsule + first 3 screenshots + first 5s of trailer drive
+~80% of wishlist conversion. Spend disproportionate effort on those.
+
+For ITCH.IO you only need: cover image (630x500 or 16:9), 4-6 screenshots,
+optional banner. Same source material — just resize/reframe.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 2 — THE 8-SCREENSHOT PACK (specific moments to capture)
+═══════════════════════════════════════════════════════════════════════════════
+
+Order matters: first 3 are visible without scrolling on Steam. Frontload spectacle.
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 1 — "Reflection chaos" (THE HOOK)
+─────────────────────────────────────────────────────────────────────────────
+- Wave 6+ with player in center, bubble active (cyan glow visible)
+- 6+ reflected bullets curving back at enemies
+- A chain reaction mid-explosion (orange/yellow burst)
+- Combo counter visible reading 15+
+- Multiple enemy types on screen (grunt, sniper, swarm needles)
+- This is your "what game is this?" moment — must be picture-perfect
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 2 — Boss fight peak intensity
+─────────────────────────────────────────────────────────────────────────────
+- FIREWALL boss (red, hexagonal pattern) mid-attack
+- Player visibly dodging through bullet pattern
+- Boss HP bar visible at top
+- "BOSS PHASE 2" or similar banner if available
+- Pick the boss with the MOST visually distinct attack pattern —
+  FIREWALL's radial spread or CORE.BREACH's golden geometry are both strong
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 3 — Mechanic clarity (the elevator pitch frame)
+─────────────────────────────────────────────────────────────────────────────
+- Slower moment showing the core loop:
+- A single sniper firing a bright bullet at the player
+- Player has bubble UP, bullet visibly mid-reflection (curve trail)
+- The reflected bullet path going back toward the sniper
+- HUD minimal/clean so the mechanic reads
+- This sells the unique mechanic to anyone confused by shot 1
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 4 — Build variety / archetype select
+─────────────────────────────────────────────────────────────────────────────
+- Full ArchetypeSelectScene screenshot
+- All 8 archetype cards visible
+- Mastery tiers showing (T2, T3 etc.) so it hints at depth
+- Ascension dots row visible at bottom
+- One archetype hover-selected with preview panel populated
+- Tells players "this has hundreds of hours of content"
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 5 — Wave modifier intensity
+─────────────────────────────────────────────────────────────────────────────
+- Wave with a strong modifier active (OVERLOAD or DENSE wave)
+- Persistent wave-mod widget visible top-left under PILOT
+- 40+ enemies on screen
+- Player surviving the chaos
+- Sells the "every run is different" pitch
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 6 — Late-game power fantasy
+─────────────────────────────────────────────────────────────────────────────
+- Player using their active power mid-fire (ghost step, emp burst,
+  corrupt wave — whichever looks most VISUAL)
+- AOE explosion or screen-wide effect at peak
+- Score reading 100k+, wave 15+
+- Sells the progression payoff
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 7 — Identity / atmosphere shot
+─────────────────────────────────────────────────────────────────────────────
+- Main menu with CONTAINMENT_LOG ticker mid-message
+- ASCII reveal of title (or post-decrypt with full splash visible)
+- A red CRIT line on the ticker for color contrast
+- Sells the aesthetic to people who want vibes
+
+─────────────────────────────────────────────────────────────────────────────
+SHOT 8 — Numbers / progression UI
+─────────────────────────────────────────────────────────────────────────────
+- Stats or RunSummary scene
+- Showing kill count, combo max, shards earned
+- Or the meta-upgrade tree if it visually shows lots of nodes
+- Sells the long-tail progression to roguelike enthusiasts
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 3 — TRAILER OUTLINE (60 seconds, no narration)
+═══════════════════════════════════════════════════════════════════════════════
+
+Audio: existing menu music + one boss track. No voiceover — let the game speak.
+
+  0:00–0:03   Black screen. ASCII decrypt of "SIGNAL_LOST" title. Cut.
+  0:03–0:08   Wave 1 quick montage: 4-5 reflection moments, fast cuts at 1s each
+  0:08–0:15   Boss spawn cinematic + 5 seconds of FIREWALL fight
+  0:15–0:22   Archetype select carousel — quick rotation through 4 archetype cards
+  0:22–0:35   High-wave gameplay montage — combo counter climbing, chain
+              explosions, ascension dots filling, side-objectives ticking
+  0:35–0:48   Wave modifier moment + dramatic clutch save
+              (shield activate → reflection → 8-enemy chain)
+  0:48–0:55   All 4 bosses 1-second flash each, ending on CORE.BREACH
+  0:55–0:60   Logo + tagline: "ROGUE AI CONTAINMENT PROTOCOL" + "Wishlist now"
+
+PACING LAW: cut every 1-2 seconds in the first 10 seconds. Steam users decide
+whether to keep watching within 5 seconds.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 4 — GIFs FOR LONG DESCRIPTION
+═══════════════════════════════════════════════════════════════════════════════
+
+Steam's long description supports embedded GIFs that auto-play. These outperform
+static screenshots dramatically. Make 3-4 looping GIFs at ~5-8 seconds each,
+~800x450 (smaller filesize):
+
+1. reflect.gif — The reflection loop: single bullet → bubble → reflected →
+   enemy dies → chain. Loops cleanly. THE most important asset on the page.
+
+2. combo.gif — Multi-enemy chain reaction reaching combo 20+
+
+3. boss.gif — FIREWALL phase transition with player weaving through bullets
+
+4. power.gif — One of the more visually dramatic powers
+   (corrupt_wave or chain_trigger work best)
+
+Each GIF: maximum 3MB. Use ezgif.com to optimize palette down to 64 colors —
+saves huge filesize without quality loss given the terminal aesthetic.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 5 — HEADER CAPSULE DESIGN (highest-leverage asset)
+═══════════════════════════════════════════════════════════════════════════════
+
+Spec: 460x215px. Will be cropped to ~324x151 on mobile so keep critical content
+inside that safe zone.
+
+WHAT GOES ON IT:
+- Left 60%: visual focal point — a stylized version of your player ship with
+  bubble active, bullets reflecting outward. NOT a screenshot — a hand-composed
+  key art frame.
+- Right 40%: bold "SIGNAL_LOST" wordmark + thin "ROGUE AI CONTAINMENT PROTOCOL"
+  subtitle
+- Background: deep black with subtle green hex-grid pattern, dim red CRT
+  scanlines overlay (ironic given CRT is disabled in-game — pure aesthetic here)
+- Color anchor: ONE bright green accent (#00ff66) and ONE red accent (enemy
+  bullet trail). High contrast.
+
+COMMON MISTAKES TO AVOID:
+- Don't use a raw screenshot — capsules need composition, not a scene grab
+- Don't fill it with text — title + ~3 word tagline max
+- Don't use multiple fonts — pick one (Orbitron) and weight-vary it
+
+If you're not a designer, Fiverr / Tracker Studios indie capsule artists charge
+$80-200 for a competent capsule. Worth it — ROI on capsule quality is enormous.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 6 — CAPTURE WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+1. DISABLE HUD-DENSITY ELEMENTS SELECTIVELY:
+   - For atmosphere shots: hide the side-objectives + mini-banner
+   - For mechanic shots: leave them on so screenshots feel real
+
+2. USE THE IN-GAME DEV OVERLAY (Shift+Tab) to:
+   - Force-spawn enemies for chaos shots
+   - Force wave 15+ to skip grinding
+   - Pause the game mid-explosion for the perfect frame
+
+3. CAPTURE AT NATIVE FULLSCREEN 1920x1080:
+   - Electron supports webContents.capturePage() for clean programmatic captures
+   - Cmd+Shift+4 (Mac) or PrintScreen (Windows) into a frame buffer works fine
+
+4. GIF CAPTURE:
+   - Mac: Kap (https://getkap.co)
+   - Windows: ScreenToGif (https://www.screentogif.com)
+   - 30fps, 8 seconds max, 800px wide
+
+5. BACKGROUND MUSIC FOR TRAILER:
+   - Existing menu/boss tracks work
+   - For punchier cuts: Pixabay Music has free CC0 tracks tagged
+     "cyberpunk synthwave"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 7 — ITCH.IO ADJUSTMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+Itch.io's page format is less aggressive than Steam. Adjustments:
+
+- Cover image (630x500): Steam header capsule cropped square-ish
+- Banner (optional, 1920x620): trailer's first frame
+- Screenshots: same 6-8 from Steam, but itch shows them in a horizontal
+  carousel where order matters less
+- Embedded GIF in the description: itch supports inline GIFs, use Shot 1's
+  reflection-chaos GIF prominently at top
+- Tags to use:
+    roguelike, bullet-hell, roguelite, arcade, procedural-generation,
+    pixel-art (counts even though yours is vector-ish), cyberpunk, singleplayer
+
+Itch.io also rewards DEVLOGS — posting incremental updates to your project page
+keeps it visible on the Recent Devlogs feed. Free organic traffic.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 8 — STEAM PAGE COPY TEMPLATE
+═══════════════════════════════════════════════════════════════════════════════
+
+SHORT DESCRIPTION (300 chars max):
+  1-2 sentences. Lead with mechanic + verb.
+
+  Example draft:
+    "A terminal-aesthetic bullet-hell roguelike. Reflect enemy bullets back
+     at them with your warp bubble. 8 archetypes, 4 bosses, 25 ascension
+     tiers. Every run is different."
+
+ABOUT THIS GAME (long description) structure:
+  → GIF (reflect.gif)
+  → 2 paragraphs about the loop
+  → bullet list of features
+  → 2nd GIF (combo.gif)
+  → "Each archetype plays differently" section with screenshots
+  → 3rd GIF (boss.gif)
+  → boss showcase
+  → final CTA
+
+TAGS (order matters — Steam weights first ~5 highest):
+  Roguelike, Bullet Hell, Twin Stick Shooter, Reflection, Difficult,
+  Singleplayer, Indie, Action, Arcade, Score Attack, Roguelite, Replay Value
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 9 — DISTRIBUTION COSTS (Steam vs alternatives)
+═══════════════════════════════════════════════════════════════════════════════
+
+STEAM:
+  - Steam Direct fee: $100 USD ONE-TIME per game (recoupable against first
+    $1,000 in sales)
+  - Revenue share: 30% Valve / 70% you
+  - Steamworks SDK + CDN + auto-updates + matchmaking + achievements: $0
+  - Microsoft / Apple dev accounts for Windows: NOT REQUIRED
+  - No annual fees, no per-update fees, no certificate renewal
+
+MACOS NOTE: If shipping Mac on Steam, Valve requires Apple notarization →
+  need Apple Developer Program ($99/year). Windows-only or Windows+Linux
+  Steam builds are completely free of dev-account requirement.
+
+DIRECT DOWNLOAD (itch.io / GitHub Releases) signing costs:
+  - macOS proper signing: Apple Developer Program $99/year
+  - Windows standard OV cert: $200-400/year (still slow SmartScreen reputation)
+  - Windows EV cert: $400-700/year + hardware token (instant trust)
+  - Azure Trusted Signing: ~$10/month (best price/effort for Windows)
+
+WHAT CHANGES IN BUILD PIPELINE FOR STEAM:
+  - Drop the Electron autoUpdater (Steam handles updates via Steamworks
+    content pipeline). The splash screen's update-checking logic becomes dead.
+  - Drop the GitHub Releases workflow OR keep parallel for itch.io
+  - Add Steamworks SDK if you want achievements, leaderboards, cloud saves,
+    friend overlay. Community wrapper: steamworks.js
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 10 — REVENUE EXPECTATIONS (honest ranges)
+═══════════════════════════════════════════════════════════════════════════════
+
+BASELINE: Steam's median indie game makes ~$3,000 lifetime. 70% of all Steam
+releases earn less than $4,000 ever. Bullet-hell roguelikes consistently beat
+this baseline though — it's one of the more reliable niches.
+
+ASSUMPTIONS for the table below: $7.99 launch price, 30% Steam cut, typical
+0.2x wishlist-to-sale conversion.
+
+| Scenario              | Wishlists at launch | Lifetime copies (~5yr) | Gross         | Your cut       |
+|-----------------------|--------------------:|-----------------------:|--------------:|---------------:|
+| Quiet launch          | 500-2,000           | 200-1,500              | $1.6K-$12K    | $1.1K-$8.4K    |
+| Realistic indie       | 3,000-8,000         | 2,000-8,000            | $16K-$64K     | $11K-$45K      |
+| Good launch           | 20,000-40,000       | 15,000-60,000          | $120K-$480K   | $84K-$336K     |
+| Breakout              | 100K+               | 100K-500K+             | $800K-$4M+    | $560K-$2.8M+   |
+
+THE LEVER THAT MATTERS MOST:
+  lifetime revenue ≈ (launch wishlists) × ($1.50 to $3 per wishlist)
+
+WISHLIST COUNT PREDICTS REVENUE 5-10x BETTER THAN GAME QUALITY. A great game
+with 1,000 wishlists earns less than a mediocre game with 30,000 wishlists.
+Every hour spent on marketing pre-launch is worth ~$20-100 in eventual revenue
+if you're under 10K wishlists.
+
+WHAT WORKS IN SIGNAL_LOST'S FAVOR:
+  - Distinctive visual identity (terminal/CRT/rogue-AI is uncommon)
+  - Unique core mechanic (bubble reflection isn't a clone)
+  - Substantial depth (8 archetypes, mastery, ascension, codex,
+    daily challenges, side objectives, meta upgrades, achievements)
+  - Strong "one more run" loop (TikTok/streamer-content friendly)
+
+WHAT WORKS AGAINST:
+  - Solo dev with no marketing budget
+  - Crowded genre (Vampire Survivors / Brotato carpet-bombed the space)
+  - No multiplayer (limits viral spread)
+  - Electron stigma (minor; most won't notice)
+  - Aesthetic is niche (anime/cute/synthwave outsell hacker aesthetic)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 11 — PRE-LAUNCH MARKETING TIMELINE (rough)
+═══════════════════════════════════════════════════════════════════════════════
+
+If aiming for "realistic indie launch" tier:
+
+T-3 MONTHS (start of campaign):
+  - Set up Steam page (just title + capsule + 4 screenshots + short desc).
+    Wishlist button live.
+  - Set up TikTok, Bluesky, Twitter accounts
+  - Begin posting 2-3x/week: gameplay GIFs, dev process clips, bug bloopers
+
+T-2 MONTHS:
+  - Polish trailer
+  - Apply for Steam Next Fest (next available slot)
+  - Submit to r/IndieGaming, r/incremental_games, r/roguelikes monthly threads
+  - Reach out to 20-30 small roguelike YouTubers (under 10K subs)
+    with a free key
+
+T-1 MONTH:
+  - Steam Next Fest demo goes live
+  - Daily content posts
+  - Pin trailer to social profiles
+  - Email any press contacts (rps, indiegamer, polygon, kotaku) with
+    embargoed code
+
+T+0 LAUNCH:
+  - Post launch announcement everywhere
+  - Drop a TikTok of the "1 hour of game in 60 seconds" montage
+  - Submit to reddit's r/Games + r/IndieGaming
+
+T+1 WEEK:
+  - First content update (free QoL patch or new archetype) to drive
+    second wave of attention
+  - Respond to every review (positive AND negative)
+
+GENERAL RULE: shipping = the START of marketing, not the end. Most indie
+games make 60-80% of their lifetime revenue in months 1-3.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PART 12 — TODO BEFORE FIRST CAPTURE SESSION
+═══════════════════════════════════════════════════════════════════════════════
+
+[ ] Decide on launch price ($5.99? $7.99? $9.99? — recommend $7.99 baseline)
+[ ] Pick which boss for Shot 2 (FIREWALL recommended for color contrast)
+[ ] Pick which archetype to feature in Shot 3 (probably reflector or
+    SIGNAL_FORGE for identity)
+[ ] Identify which active power gives best Shot 6 (test each visually)
+[ ] Set up Kap / ScreenToGif on capture machine
+[ ] Set up Electron in true fullscreen 1920x1080 mode for clean captures
+[ ] Decide: solo capsule design OR Fiverr commission ($80-200)
+[ ] Reserve Steam page URL (only needs game name to lock it in)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF LAUNCH PLAN
+═══════════════════════════════════════════════════════════════════════════════

@@ -50,7 +50,7 @@ const ENEMY_TYPES = {
     spd:   130,
     color: 0x44ff44,
     sInt:  99,
-    desc:  'Drains signal meter on contact.',
+    desc:  'Pursues and overloads bubble heat on contact.',
   },
   bouncer: {
     hp:    2,
@@ -126,26 +126,26 @@ const ENEMY_TYPES = {
   },
 };
 
-// ── Enemy mutations (applied per-run) ──
+// ── Enemy mutations (applied per-run, per-enemy mechanical effects only) ──
+// Wave-level effects (+HP, +Speed, AoE-on-death) live in waveModifier pool instead.
 const ENEMY_MUTATIONS = [
-  { id: 'splitting',    label: 'SPLIT',  col: 0xff6600, desc: 'On death spawns 2 swarms' },
   { id: 'magnetic',     label: 'MAGNET', col: 0x00aaff, desc: 'Pulls reflected bullets toward it' },
-  { id: 'armored',      label: 'ARMOR',  col: 0xffdd00, desc: '+1 HP — takes an extra hit' },
-  { id: 'volatile',     label: 'VOLAT',  col: 0xaa00ff, desc: 'Explodes on death — AoE damage' },
   { id: 'phase',        label: 'PHASE',  col: 0x88ffff, desc: 'Teleports when hit below 50% HP' },
   { id: 'mirror',       label: 'MIRR',   col: 0xffffff, desc: 'Deflects reflected bullets back' },
   { id: 'regenerating', label: 'REGEN',  col: 0x00ff88, desc: 'Slowly heals if not hit for 3s' },
-  { id: 'overclocked',  label: 'OVCL',   col: 0xff4400, desc: '+50% move speed and fire rate' },
 ];
 
-// -- Legact alias used by GameScene
-function _pickRunMutations() {
-  return pickRunMutations(); 
+// -- Legacy alias used by GameScene (defaults to 1 mutation if called without count)
+function _pickRunMutations(count) {
+  return pickRunMutations(count);
 }
 
-function pickRunMutations() {
+function pickRunMutations(count = 1) {
+  if (count <= 0) return [];
   const pool = [...ENEMY_MUTATIONS];
-  const a = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-  const b = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-  return [a, b];
+  const out = [];
+  for (let i = 0; i < count && pool.length > 0; i++) {
+    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return out;
 }

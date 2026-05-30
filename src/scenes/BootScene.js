@@ -25,7 +25,16 @@ class BootScene extends Phaser.Scene{
       const diff=(Settings.get('difficulty')||'daemon').toUpperCase();
       const archId=data.archetype||'reflector';
       const arch=ARCHETYPES.find(a=>a.id===archId)||ARCHETYPES[0];
-      const acN=arch.col;
+      // SIGNAL_FORGE: overlay the player's saved color + icon so the boot/loading screen matches
+      let _archCol=arch.col, _archIcon=arch.icon;
+      if(archId==='signal_forge'&&typeof Save.forgeConfig==='function'){
+        const cfg=Save.forgeConfig();
+        if(cfg){
+          if(cfg.color!=null) _archCol=cfg.color;
+          if(cfg.icon)        _archIcon=cfg.icon;
+        }
+      }
+      const acN=_archCol;
       const acS='#'+acN.toString(16).padStart(6,'0');
 
       // Mode accent colour
@@ -89,7 +98,7 @@ class BootScene extends Phaser.Scene{
       innerGfx.closePath();innerGfx.strokePath();
 
       // Icon inside hex
-      this.add.text(CX,CY,arch.icon,{fontFamily:"'Courier New',monospace",fontSize:'44px',color:acS}).setOrigin(0.5).setDepth(6);
+      this.add.text(CX,CY,_archIcon,{fontFamily:"'Courier New',monospace",fontSize:'44px',color:acS}).setOrigin(0.5).setDepth(6);
 
       // Archetype name
       const nameT=this.add.text(CX,CY+72,arch.name,{
@@ -178,9 +187,3 @@ class BootScene extends Phaser.Scene{
     });
   }
 }
-
-
-
-// ═══════════════════════════════════════════════════════════
-// OVERCLOCK SCENE
-// ═══════════════════════════════════════════════════════════

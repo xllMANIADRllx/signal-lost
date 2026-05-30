@@ -65,9 +65,7 @@ class Player {
     this.adaptiveWaves  = 0;
 
     // ── Visual ──
-    this.glitchSplit    = 0;
     this.packetTrace    = [];
-    this.movTrail       = [];
     this.invincT        = 0;
 
     // ── Meta / run state ──

@@ -75,7 +75,7 @@ class MetaUpgradeScene extends Phaser.Scene {
     const backTxt = this.add.text(8 + 70, H - FTR_H / 2, '[ ESC — BACK ]', { fontFamily: mono, fontSize: '11px', color: '#447755', letterSpacing: 1 }).setOrigin(0.5);
     backBg.on('pointerover', () => { backBg.setStrokeStyle(1, 0x00ff66, 1); backTxt.setColor('#00ff88'); });
     backBg.on('pointerout',  () => { backBg.setStrokeStyle(1, 0x0a2818, 1); backTxt.setColor('#447755'); });
-    backBg.on('pointerdown', () => this._goBack());
+    backBg.on('pointerdown', () => { try { Snd.play('powerup'); } catch {} this._goBack(); });
 
     // Install button
     this._installBg  = this.add.rectangle(W - 24, H - FTR_H / 2, 180, 34, 0x000000, 0.9).setStrokeStyle(1, 0x0a3318, 1).setOrigin(1, 0.5).setInteractive({ useHandCursor: false }).setAlpha(0.4);
@@ -142,7 +142,7 @@ class MetaUpgradeScene extends Phaser.Scene {
         tier.ids.forEach(id => {
           const meta = metaMap[id]; if (!meta) return;
           const owned      = Save.hasMeta(id);
-          const parentOwned = (PARENTS[id] || []).length === 0 || (PARENTS[id] || []).some(p => Save.hasMeta(p));
+          const parentOwned = (PARENTS[id] || []).length === 0 || (PARENTS[id] || []).every(p => Save.hasMeta(p));
           const canAfford  = !owned && parentOwned && Save.fragments() >= meta.cost;
           const available  = !owned && parentOwned;
           pkgs.push({ id, meta, owned, available, canAfford, tier: tier.label, parents: PARENTS[id] || [], children: CHILDREN[id] || [], anim: UPGRADE_ANIMS[id] });
@@ -219,7 +219,7 @@ class MetaUpgradeScene extends Phaser.Scene {
     const showDetail = (pkg) => {
       this._detailObjs.forEach(o => { try { o.destroy(); } catch {} });
       this._detailObjs = [];
-      this._currentAnim = pkg.anim;
+      this._currentAnim = pkg.available ? pkg.anim : null;
       this._animT = 0;
 
       const dadd = o => { this._detailObjs.push(o); return o; };

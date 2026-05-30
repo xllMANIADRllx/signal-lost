@@ -174,7 +174,7 @@ class GameOverScene extends Phaser.Scene{
           {x:W/2-130,w:210,h:48,label:'[ RECONNECT ]',sub:'start new run',
            bg:0x001500,col:0x00ff44,colH:'#00ff44',active:true,
            fn:()=>{Save.set('debug_uses',0);this.cameras.main.fadeOut(280,0,0,0);this.time.delayedCall(280,()=>{
-             try{const gs=this.scene.get('GameScene');if(gs)gs.shutdown();}catch{}
+             // Don't call gs.shutdown() manually — Phaser invokes it via scene.stop
              this.scene.stop('GameScene');
              this.scene.stop('GameOverScene');
              let arcData2={};

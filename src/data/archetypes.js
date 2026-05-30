@@ -14,6 +14,7 @@ const ARCHETYPES = [
     passive: 'Chain depth +2. Reflected bullets travel 20% faster.',
     seeds:   { echo_protocol: 1, bubble_speed: 1 },
     power:   'chain_trigger',
+    cost:    0,
   },
   {
     id:      'corruptor',
@@ -25,6 +26,7 @@ const ARCHETYPES = [
     passive: 'Signal Decay active. Corrupted enemies spread on death.',
     seeds:   { corrupt_data: 2, signal_decay: 1 },
     power:   'corrupt_wave',
+    cost:    1600,
   },
   {
     id:      'ghost',
@@ -36,6 +38,7 @@ const ARCHETYPES = [
     passive: 'No dash cooldown below 30% bubble heat.',
     seeds:   { ghost_trace: 2, bubble_speed: 1 },
     power:   'ghost_step',
+    cost:    1200,
   },
   {
     id:      'overclocker',
@@ -47,6 +50,7 @@ const ARCHETYPES = [
     passive: 'At 80%+ heat: reflect speed ×1.5.',
     seeds:   { bubble_armor: 2, overclock_burst: 1 },
     power:   'overclock_surge',
+    cost:    800,
   },
   {
     id:      'fortress',
@@ -58,6 +62,7 @@ const ARCHETYPES = [
     passive: 'Shield break slows nearby enemies for 2 seconds.',
     seeds:   { bubble_size: 2, shield: 1 },
     power:   'null_zone',
+    cost:    400,
   },
   {
     id:      'storm',
@@ -69,5 +74,30 @@ const ARCHETYPES = [
     passive: 'Every 5th reflection auto-fires a bonus bullet.',
     seeds:   { multishot: 2, signal_fork: 2 },
     power:   'emp_burst',
+    cost:    2200,
+  },
+  {
+    id:      'rogue',
+    name:    'ROGUE',
+    col:     0xff2266,
+    icon:    '◈',
+    tagline: 'High burst. Vanish. Take everything they drop.',
+    desc:    'Signal Fork at tier 2. Reflect speed maxed from wave 1. Every kill drops a fragment.',
+    passive: 'Score ×1.15. Each enemy kill drops 1 fragment. Chain Trigger power.',
+    seeds:   { signal_fork: 2, reflect_speed: 2 },
+    power:   'chain_trigger',
+    cost:    2800,
+  },
+  {
+    id:      'signal_forge',
+    name:    'SIGNAL_FORGE',
+    col:     0xcc44ff,
+    icon:    '◆',
+    tagline: 'CUSTOM PROTOCOL — FORGED FROM SIGNAL',
+    desc:    'Configure your own passive, power, and signature. Unlocked after defeating CORE.BREACH.',
+    passive: '(configurable)',
+    seeds:   {},
+    power:   'ping',
+    cost:    0,
   },
 ];

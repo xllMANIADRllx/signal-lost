@@ -20,19 +20,16 @@ const Save = {
   highScore()       { return this.get('hs', 0); },
   saveHighScore(s)  { if (s > this.highScore()) this.set('hs', s); },
 
-  // ── Shards (main currency) ──
-  shards()          { return this.get('shards', 0); },
-  addShards(n)      { this.set('shards', this.shards() + n); },
-  spendShards(n)    {
-    const s = this.shards();
-    if (s < n) return false;
-    this.set('shards', s - n);
-    return true;
-  },
+  // ── Shards (main currency) — delegate to dedicated Shards module ──
+  // Every read/write goes through Shards.get/add/spend so a single
+  // global toggle (Shards.DEBUG_LOG = true) traces every mutation.
+  shards()          { return Shards.get(); },
+  addShards(n)      { Shards.add(n, 'Save.addShards'); return Shards.get(); },
+  spendShards(n)    { return Shards.spend(n, 'Save.spendShards'); },
 
   // ── Fragments (meta currency) ──
   fragments()       { return this.get('fragments', 0); },
-  addFragments(n)   { this.set('fragments', this.fragments() + n); },
+  addFragments(n)   { this.set('fragments', this.fragments() + n); this.addStat('total_fragments', n); },
   spendFragments(n) {
     const f = this.fragments();
     if (f < n) return false;
@@ -54,8 +51,15 @@ const Save = {
     const lb = this.leaderboard();
     lb.push(entry);
     lb.sort((a, b) => b.score - a.score);
-    lb.splice(10);
+    lb.splice(30);  // keep top 30
     this.set('lb', lb);
+  },
+
+  // ── Operator name (player identity for leaderboard) ──
+  operatorName()    { return this.get('operator_name', '') || ''; },
+  setOperatorName(n){
+    const clean = String(n || '').replace(/[^a-zA-Z0-9_\-. ]/g, '').slice(0, 12).trim().toUpperCase();
+    this.set('operator_name', clean || 'OPERATOR');
   },
 
   // ── Lore unlocks ──
@@ -82,9 +86,28 @@ const Save = {
 
   // ── Stats tracking ──
   stats()           { return this.get('stats', {}); },
+  stat(key, defaultVal) { return (this.stats())[key] ?? defaultVal; },
   addStat(key, n=1) {
     const s = this.stats();
     s[key] = (s[key] || 0) + n;
     this.set('stats', s);
   },
+  setStat(key, val) {
+    const s = this.stats();
+    s[key] = val;
+    this.set('stats', s);
+  },
+
+  // ── Run history (last 5 runs) ──
+  runHistory()      { return this.get('run_history', []); },
+  addRunHistory(entry) {
+    const h = this.runHistory();
+    h.unshift(entry);
+    h.splice(5);
+    this.set('run_history', h);
+  },
+
+  // ── Achievements ──
+  ach(id)           { return this.get('ach_' + id, false); },
+  unlockAch(id)     { this.set('ach_' + id, true); },
 };

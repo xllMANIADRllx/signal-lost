@@ -190,7 +190,6 @@ class SettingsScene extends Phaser.Scene{
     };
 
     if(cat==='render'){
-      toggle('CRT_OVERLAY',   'Scanlines + chromatic aberration + glitch','crt');
       toggle('VIGNETTE',      'Edge darkening overlay around screen borders','vignette');
       toggle('SCREEN_FX',     'Camera shake + flash effects on damage/events','shake');
       toggle('SMOOTH_MOVE',   'Lerp player smoothly to cursor position','smooth');

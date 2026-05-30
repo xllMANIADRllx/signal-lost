@@ -49,6 +49,19 @@ class UpgradeScene extends Phaser.Scene{
     this.add.text(16,336,'WALLET',{fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#336644'});
     this.add.text(16,348,`◈ ${data.shards||0} SHARDS`,{fontFamily:"'Courier New',monospace",fontSize:'13px',fontStyle:'bold',color:'#ff9944'});
 
+    // #11 Wave preview strip — show next wave modifier
+    if(data.nextWaveMod){
+      this.add.rectangle(16,378,LP-32,1,0x1a3322,0.6).setOrigin(0,0);
+      this.add.text(16,386,'NEXT WAVE MODIFIER',{fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#336644'});
+      const MOD_COLS={FAST:'#ff8800',DENSE:'#ff4400',ARMORED:'#ff0000',VOLATILE:'#aa44ff',DARK:'#4488ff',OVERLOAD:'#ffdd00',FRAGILE:'#ff88aa',MINIBOSS:'#ffaa00',ENCORE:'#00ffcc',SURGE:'#ff44ff',BOUNTY:'#44ffaa',FRACTURED:'#ffaa44'};
+      const MOD_LABELS={FAST:'OVERCLOCK',DENSE:'FLOOD_PROTOCOL',ARMORED:'HARDENED_SHELL',VOLATILE:'UNSTABLE_DATA',DARK:'SIGNAL_BLACKOUT',OVERLOAD:'CORE_OVERLOAD',FRAGILE:'PACKET_FRAG',MINIBOSS:'ELITE_PROCESS',ENCORE:'ENCORE_PROTOCOL',SURGE:'DATA_SURGE',BOUNTY:'BOUNTY_WAVE',FRACTURED:'PROC_FRACTURE'};
+      const mc=MOD_COLS[data.nextWaveMod]||'#ff4444';
+      const ml=MOD_LABELS[data.nextWaveMod]||data.nextWaveMod;
+      const modBg=this.add.rectangle(16,398,LP-32,28,parseInt(mc.replace('#',''),16),0.12).setOrigin(0,0);
+      modBg.setStrokeStyle(1,parseInt(mc.replace('#',''),16),0.5);
+      this.add.text(LP/2,412,`⚡ ${ml}`,{fontFamily:"'Courier New',monospace",fontSize:'11px',fontStyle:'bold',color:mc,letterSpacing:1}).setOrigin(0.5,0.5);
+    }
+
     // Skip button bottom of panel
     const sk=this.add.text(LP/2,H-20,'[ SKIP ]',{fontFamily:"'Courier New',monospace",fontSize:'11px',color:'#224433'}).setOrigin(0.5).setInteractive({useHandCursor:true});
     sk.on('pointerover',()=>sk.setColor('#00ff88'));sk.on('pointerout',()=>sk.setColor('#224433'));
@@ -73,6 +86,32 @@ class UpgradeScene extends Phaser.Scene{
       if(curLevel>=4)continue; // skip maxed upgrades (T4 = max)
       picks.push({id,...u,level:curLevel});
     }
+
+    // #16 Synergy hint map — id: [partnerIds] needed
+    const SYN_REQ={
+      magnet:       {needs:'multishot',   name:'STORM'},
+      multishot:    {needs:'magnet',      name:'STORM'},
+      bubble_size:  {needs:'bubble_speed',name:'SINGULARITY'},
+      bubble_speed: {needs:'bubble_size', name:'SINGULARITY'},
+      reflect_speed:{needs:'score_boost', name:'OVERCLOCK'},
+      score_boost:  {needs:'reflect_speed',name:'OVERCLOCK'},
+      null_shield:  {needs:'ghost_trace', name:'GHOST_PROTOCOL'},
+      ghost_trace:  {needs:'null_shield', name:'GHOST_PROTOCOL'},
+      chain_amplifier:{needs:'signal_fork',name:'OVERLOAD_CHAIN'},
+      signal_fork:  {needs:'chain_amplifier',name:'OVERLOAD_CHAIN'},
+      shield:       {needs:'null_shield', name:'REDUNDANT_CORE'},
+    };
+    const curUpg=data.upgrades||{};
+    // Check which synergies are one upgrade away
+    const _synHint=(id)=>{
+      const req=SYN_REQ[id];
+      if(!req)return null;
+      const partnerLevel=curUpg[req.needs]||0;
+      // SINGULARITY needs both >=3, OVERCLOCK needs reflect_speed>=3 and score_boost>=2
+      // For simplicity: hint if partner already has any level
+      if(partnerLevel>0)return req.name;
+      return null;
+    };
 
     // ── Cards — right side of screen ──
     const RX=LP+10; // right area start x
@@ -117,6 +156,14 @@ class UpgradeScene extends Phaser.Scene{
 
       // Description
       this.add.text(cx-CW/2+12,iconY+90,upg.desc,{fontFamily:"'Courier New',monospace",fontSize:'11px',color:'#44aa66',wordWrap:{width:CW-24},lineSpacing:3});
+
+      // #16 Synergy hint badge
+      const synHint=_synHint(upg.id);
+      if(synHint){
+        const sbg=this.add.rectangle(cx,iconY+142,CW-20,20,0xffd700,0.1).setOrigin(0.5,0);
+        sbg.setStrokeStyle(1,0xffd700,0.5);
+        this.add.text(cx,iconY+152,`⬡ SYNERGY: ${synHint}`,{fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#ffd700',letterSpacing:1}).setOrigin(0.5,0.5);
+      }
 
       // Tier pip bar
       const pipY=cy+CH/2-72;
@@ -195,10 +242,3 @@ class UpgradeScene extends Phaser.Scene{
     }
   }
 }
-
-// GAME OVER SCENE
-// ═══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════
-// RUN SUMMARY SCENE
-// ═══════════════════════════════════════════════════════════

@@ -8,10 +8,6 @@ class UpgradeManager {
     // Upgrade levels — all start at 0
     this.levels = {};
     Object.keys(UPGRADES).forEach(id => { this.levels[id] = 0; });
-
-    // Derived values — recalculated when upgrades change
-    this._dirty = true;
-    this._cache = {};
   }
 
   // ── Install an upgrade ──
@@ -20,7 +16,6 @@ class UpgradeManager {
     const maxTier = 4;
     if ((this.levels[id] || 0) >= maxTier) return false;
     this.levels[id] = (this.levels[id] || 0) + 1;
-    this._dirty = true;
     return true;
   }
 
@@ -29,7 +24,6 @@ class UpgradeManager {
     Object.entries(seeds || {}).forEach(([id, tier]) => {
       this.levels[id] = Math.max(this.levels[id] || 0, tier);
     });
-    this._dirty = true;
   }
 
   // ── Apply meta upgrade effects at run start ──
@@ -87,6 +81,5 @@ class UpgradeManager {
     Object.entries(data || {}).forEach(([id, tier]) => {
       this.levels[id] = tier;
     });
-    this._dirty = true;
   }
 }

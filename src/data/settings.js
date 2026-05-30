@@ -7,7 +7,7 @@ const Settings = {
     music:            0.35,
     sfx:              0.8,
     shake:            true,
-    crt:              true,
+    crt:              false,
     voice:            true,
     smooth:           true,
     vignette:         false,
@@ -46,6 +46,8 @@ const Settings = {
       const saved = JSON.parse(localStorage.getItem('sl_cfg') || '{}');
       Object.assign(this.data, saved);
     } catch {}
+    // CRT is permanently disabled — force off regardless of any old saved value
+    this.data.crt = false;
   },
 
   reset() {

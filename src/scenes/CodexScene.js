@@ -171,19 +171,31 @@ class CodexScene extends Phaser.Scene {
     const MUTATION_DATA = ENEMY_MUTATIONS.map(m => ({
       id: m.label, col: '#' + m.col.toString(16).padStart(6, '0'), colN: m.col, desc: m.desc,
       detail: ({
-        splitting:    'On death spawns 2 SWARM-type enemies. Chain them immediately.',
         magnetic:     'Pulls reflected bullets toward it — your reflections curve away. Use GRAVITY_ECHO to counter.',
-        armored:      '+1 HP. Requires an extra hit. Reflected bullets that miss waste chain potential.',
-        volatile:     'Explodes on death dealing AoE heat damage. Kill from range or with PING.',
         phase:        'Teleports when hit below 50% HP. Track where it reappears. Second hit window is brief.',
         mirror:       'Deflects reflected bullets back toward you. Use PING instead.',
         regenerating: 'Slowly heals if not hit for 3s. Keep pressure up. Never let it rest.',
-        overclocked:  '+50% speed and fire rate. Treat like a sniper-speed grunt.',
       })[m.id] || m.desc,
     }));
 
     const LORE_DATA = LORE.map(l => ({
       id: l.title, col: '#ffaa55', colN: 0xff9944, boss: l.boss, text: l.text,
+    }));
+
+    // ── Mastery data ──
+    const MASTERY_DATA = ARCHETYPES.map(arch => ({
+      id: arch.id,
+      name: arch.name,
+      col: '#ffcc00',
+      colN: 0xffcc00,
+      icon: arch.icon,
+      tagline: arch.tagline,
+      runs: Save.stat('arch_'+arch.id+'_runs', 0),
+      best_wave: Save.stat('arch_'+arch.id+'_best_wave', 0),
+      best_score: Save.stat('arch_'+arch.id+'_best_score', 0),
+      total_kills: Save.stat('arch_'+arch.id+'_total_kills', 0),
+      total_bosses: Save.stat('arch_'+arch.id+'_total_bosses', 0),
+      mastered: Save.hasMeta('arch_mastery_'+arch.id),
     }));
 
     // ── Tabs ──
@@ -192,6 +204,7 @@ class CodexScene extends Phaser.Scene {
       { id: 'bosses',     label: 'BOSSES',     col: '#ff8844', colN: 0xff6600, data: BOSS_DATA,     groups: [{ label: '// WAVE BOSSES', filter: () => true }] },
       { id: 'relics',     label: 'RELICS',     col: '#bb77ff', colN: 0xaa44ff, data: RELIC_DATA,    groups: [{ label: '// BOSS DROPS', filter: () => true }] },
       { id: 'archetypes', label: 'ARCHETYPES', col: '#44ffdd', colN: 0x00ffcc, data: ARCHETYPE_DATA, groups: [{ label: '// PLAYSTYLES', filter: () => true }] },
+      { id: 'mastery',    label: 'MASTERY',    col: '#ffcc00', colN: 0xffcc00, data: MASTERY_DATA,  groups: [{ label: '// PLAYSTYLE PROGRESS', filter: () => true }] },
       { id: 'sectors',    label: 'SECTORS',    col: '#66ff88', colN: 0x00ff66, data: SECTOR_DATA,   groups: [{ label: '// NETWORK MAP', filter: () => true }] },
       { id: 'mutations',  label: 'MUTATIONS',  col: '#ffee44', colN: 0xffdd00, data: MUTATION_DATA, groups: [{ label: '// MODIFIERS', filter: () => true }] },
       { id: 'lore',       label: 'LORE',       col: '#ffaa55', colN: 0xff9944, data: LORE_DATA,     groups: [{ label: '// PACKET LOGS', filter: () => true }] },
@@ -257,25 +270,48 @@ class CodexScene extends Phaser.Scene {
       dadd(this.add.text(DX, dy, entry.id || entry.name, { fontFamily: mono, fontSize: '15px', fontStyle: 'bold', color: col }));
       dy += 22;
 
-      // Meta row
-      const meta = [];
-      if (entry.sector) meta.push({ l: 'SECTOR',  v: entry.sector });
-      if (entry.wave)   meta.push({ l: 'WAVE',    v: entry.wave });
-      if (entry.hp)     meta.push({ l: 'HP',      v: String(entry.hp) });
-      if (entry.spd)    meta.push({ l: 'SPEED',   v: entry.spd });
-      if (entry.threat) meta.push({ l: 'THREAT',  v: entry.threat });
-      if (entry.source) meta.push({ l: 'SOURCE',  v: entry.source });
-      if (entry.waves)  meta.push({ l: 'WAVES',   v: entry.waves });
-      if (entry.boss)   meta.push({ l: 'BOSS',    v: entry.boss });
-      if (entry.wave && entry.size) meta.push({ l: 'WAVE', v: String(entry.wave) });
-      const colW = Math.floor(TEXT_W / Math.min(meta.length, 4));
-      meta.slice(0, 4).forEach((m, mi) => {
-        const mx = DX + mi * colW;
-        dadd(this.add.text(mx, dy,      m.l, { fontFamily: mono, fontSize: '8px',  color: '#887755' }));
-        dadd(this.add.text(mx, dy + 12, m.v, { fontFamily: mono, fontSize: '10px', fontStyle: 'bold', color: col }));
-      });
-      dy += 30;
-      dadd(this.add.rectangle(DX, dy, TEXT_W, 1, colN, 0.2).setOrigin(0, 0)); dy += 10;
+      // Meta row (mastery tab uses special display)
+      if (tabId === 'mastery') {
+        // Mastery stats header
+        dadd(this.add.text(DX, dy, '// STATISTICS', { fontFamily: mono, fontSize: '9px', color: '#887755', letterSpacing: 2 })); dy += 14;
+        const stats = [
+          { l: 'RUNS',      v: String(entry.runs || 0) },
+          { l: 'BEST_WAVE', v: String(entry.best_wave || 0) },
+          { l: 'BEST_SCORE',v: String(entry.best_score || 0) },
+          { l: 'TOTAL_KILLS',v: String(entry.total_kills || 0) },
+          { l: 'TOTAL_BOSSES',v: String(entry.total_bosses || 0) },
+        ];
+        stats.forEach(s => {
+          dadd(this.add.text(DX, dy, s.l + ':', { fontFamily: mono, fontSize: '9px', color: '#887755' }));
+          dadd(this.add.text(DX + 120, dy, s.v, { fontFamily: mono, fontSize: '10px', fontStyle: 'bold', color: col }));
+          dy += 16;
+        });
+        if(entry.mastered) {
+          dadd(this.add.text(DX, dy, '✓ MASTERED', { fontFamily: mono, fontSize: '11px', fontStyle: 'bold', color: '#ffaa00' }));
+          dy += 18;
+        }
+        dy += 10;
+        dadd(this.add.rectangle(DX, dy, TEXT_W, 1, colN, 0.2).setOrigin(0, 0)); dy += 10;
+      } else {
+        const meta = [];
+        if (entry.sector) meta.push({ l: 'SECTOR',  v: entry.sector });
+        if (entry.wave)   meta.push({ l: 'WAVE',    v: entry.wave });
+        if (entry.hp)     meta.push({ l: 'HP',      v: String(entry.hp) });
+        if (entry.spd)    meta.push({ l: 'SPEED',   v: entry.spd });
+        if (entry.threat) meta.push({ l: 'THREAT',  v: entry.threat });
+        if (entry.source) meta.push({ l: 'SOURCE',  v: entry.source });
+        if (entry.waves)  meta.push({ l: 'WAVES',   v: entry.waves });
+        if (entry.boss)   meta.push({ l: 'BOSS',    v: entry.boss });
+        if (entry.wave && entry.size) meta.push({ l: 'WAVE', v: String(entry.wave) });
+        const colW = Math.floor(TEXT_W / Math.min(meta.length, 4));
+        meta.slice(0, 4).forEach((m, mi) => {
+          const mx = DX + mi * colW;
+          dadd(this.add.text(mx, dy,      m.l, { fontFamily: mono, fontSize: '8px',  color: '#887755' }));
+          dadd(this.add.text(mx, dy + 12, m.v, { fontFamily: mono, fontSize: '10px', fontStyle: 'bold', color: col }));
+        });
+        dy += 30;
+        dadd(this.add.rectangle(DX, dy, TEXT_W, 1, colN, 0.2).setOrigin(0, 0)); dy += 10;
+      }
 
       // Content sections
       const sections = [
@@ -317,9 +353,9 @@ class CodexScene extends Phaser.Scene {
         dadd(this.add.text(DX, dy, entry.lore, { fontFamily: mono, fontSize: '10px', color: '#aa8855', wordWrap: { width: TEXT_W }, lineSpacing: 4, fontStyle: 'italic' }));
       }
 
-      // Archetype icon overlay
-      if (tabId === 'archetypes' && entry.icon) {
-        dadd(this.add.text(VBX + VIS_W / 2, VBY + VIS_H / 2 - 20, entry.icon, { fontFamily: mono, fontSize: '36px', color: entry.col || '#00ffcc' }).setOrigin(0.5).setDepth(4));
+      // Icon overlay (archetypes and mastery tabs)
+      if ((tabId === 'archetypes' || tabId === 'mastery') && entry.icon) {
+        dadd(this.add.text(VBX + VIS_W / 2, VBY + VIS_H / 2 - 20, entry.icon, { fontFamily: mono, fontSize: '36px', color: entry.col || '#ffcc00' }).setOrigin(0.5).setDepth(4));
       }
     };
 
@@ -374,6 +410,7 @@ class CodexScene extends Phaser.Scene {
     bk.on('pointerover', () => bk.setColor('#ff9944'));
     bk.on('pointerout',  () => bk.setColor('#887744'));
     bk.on('pointerdown', () => {
+      try { Snd.play('powerup'); } catch {}
       try{Snd.stopSceneMusic();}catch(e){}
       this.cameras.main.fadeOut(220, 0, 0, 0);
       this.time.delayedCall(220, () => {
@@ -678,18 +715,18 @@ function getDailyChallenges() {
   let s = seed;
   const rng = () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
   const POOL = [
-    { id: 'surv_nowaves',  cat: 'SURVIVAL', label: 'NO_SHIELD_RUN',    desc: 'Complete 5 waves without ever activating your shield.',         diff: 'MED',  reward: 8  },
-    { id: 'surv_heat',     cat: 'SURVIVAL', label: 'HEAT_LIMIT',       desc: 'Survive 10 waves keeping bubble heat below 60% at all times.',   diff: 'HAR',  reward: 12 },
-    { id: 'surv_nodash',   cat: 'SURVIVAL', label: 'STATIC_PROCESS',   desc: 'Reach wave 5 without using dash.',                               diff: 'EASY', reward: 6  },
-    { id: 'score_chain',   cat: 'SCORE',    label: 'CHAIN_REACTION',   desc: 'Achieve a chain of 15+ in a single wave.',                       diff: 'MED',  reward: 8  },
-    { id: 'score_combo',   cat: 'SCORE',    label: 'COMBO_MASTER',     desc: 'Maintain a combo of 20+ for 3 consecutive waves.',               diff: 'HAR',  reward: 14 },
-    { id: 'score_10k',     cat: 'SCORE',    label: 'DATA_HARVEST',     desc: 'Reach 10,000 signal score in a single run.',                     diff: 'EASY', reward: 6  },
-    { id: 'skill_boss',    cat: 'SKILL',    label: 'BOSS_RUSH',        desc: 'Defeat a boss without taking any damage.',                       diff: 'HAR',  reward: 15 },
-    { id: 'skill_reflect', cat: 'SKILL',    label: 'PERFECT_REFLECT',  desc: 'Reflect 50 bullets in a single wave.',                           diff: 'MED',  reward: 8  },
-    { id: 'skill_ping',    cat: 'SKILL',    label: 'PING_MASTER',      desc: 'Kill 20 enemies using only PING power.',                         diff: 'MED',  reward: 10 },
-    { id: 'chaos_corrupt', cat: 'CHAOS',    label: 'MASS_CORRUPTION',  desc: 'Corrupt and defect 10 enemies in one run.',                      diff: 'MED',  reward: 10 },
-    { id: 'chaos_volatile',cat: 'CHAOS',    label: 'CHAIN_REACTION',   desc: 'Trigger 5 volatile explosions in a single wave.',                diff: 'EASY', reward: 6  },
-    { id: 'chaos_surge',   cat: 'CHAOS',    label: 'SURGE_ADDICT',     desc: 'Activate surge 8 times in a single run.',                        diff: 'HAR',  reward: 12 },
+    { id: 'surv_nowaves',  cat: 'SURVIVAL', label: 'NO_SHIELD_RUN',    desc: 'Complete 5 waves without ever activating your shield.',         diff: 'MED',  reward: 8,  check: (d) => d.wave >= 5 && !d.usedShield },
+    { id: 'surv_heat',     cat: 'SURVIVAL', label: 'HEAT_LIMIT',       desc: 'Survive 10 waves keeping bubble heat below 60% at all times.',   diff: 'HAR',  reward: 12, check: (d) => d.wave >= 10 && d.maxHeat < 60 },
+    { id: 'surv_nodash',   cat: 'SURVIVAL', label: 'STATIC_PROCESS',   desc: 'Reach wave 5 without using dash.',                               diff: 'EASY', reward: 6,  check: (d) => d.wave >= 5 && d.dashUses === 0 },
+    { id: 'score_chain',   cat: 'SCORE',    label: 'CHAIN_REACTION',   desc: 'Achieve a chain of 15+ in a single wave.',                       diff: 'MED',  reward: 8,  check: (d) => d.bestChain >= 15 },
+    { id: 'score_combo',   cat: 'SCORE',    label: 'COMBO_MASTER',     desc: 'Maintain a combo of 20+ for 3 consecutive waves.',               diff: 'HAR',  reward: 14, check: (d) => d.maxCombo >= 20 && d.comboTime >= 30 },
+    { id: 'score_10k',     cat: 'SCORE',    label: 'DATA_HARVEST',     desc: 'Reach 10,000 signal score in a single run.',                     diff: 'EASY', reward: 6,  check: (d) => d.score >= 10000 },
+    { id: 'skill_boss',    cat: 'SKILL',    label: 'BOSS_RUSH',        desc: 'Defeat a boss without taking any damage.',                       diff: 'HAR',  reward: 15, check: (d) => d.bossNoDamage === true },
+    { id: 'skill_reflect', cat: 'SKILL',    label: 'PERFECT_REFLECT',  desc: 'Reflect 50 bullets in a single wave.',                           diff: 'MED',  reward: 8,  check: (d) => d.waveBestReflects >= 50 },
+    { id: 'skill_ping',    cat: 'SKILL',    label: 'PING_MASTER',      desc: 'Kill 20 enemies using only PING power.',                         diff: 'MED',  reward: 10, check: (d) => d.bestPing >= 20 },
+    { id: 'chaos_corrupt', cat: 'CHAOS',    label: 'MASS_CORRUPTION',  desc: 'Corrupt and defect 10 enemies in one run.',                      diff: 'MED',  reward: 10, check: (d) => d.maxDefected >= 10 },
+    { id: 'chaos_volatile',cat: 'CHAOS',    label: 'VOLATILE_CHAIN',   desc: 'Trigger 5 volatile explosions in a single wave.',                diff: 'EASY', reward: 6,  check: (d) => d.volatileExplosions >= 5 },
+    { id: 'chaos_surge',   cat: 'CHAOS',    label: 'SURGE_ADDICT',     desc: 'Activate surge 8 times in a single run.',                        diff: 'HAR',  reward: 12, check: (d) => d.surgeFires >= 8 },
   ];
   const shuffled = [...POOL].sort(() => rng() - 0.5);
   return shuffled.slice(0, 3);

@@ -43,16 +43,16 @@ class ShopScene extends Phaser.Scene {
 
     // Category buttons
     this.add.text(LP / 2, 134, '// CATEGORY', { fontFamily: "'Courier New',monospace", fontSize: '10px', color: '#886633' }).setOrigin(0.5);
+    const _unifyOn = Save.get('archetype_unify_v1', true);
     const CATS = [
-      { id: 'chassis',  label: 'CHASSIS',  sub: 'skins & ships',    col: '#00ff66', colN: 0x00ff66 },
+      { id: 'chassis',  label: _unifyOn ? 'ARCHETYPE' : 'CHASSIS', sub: _unifyOn ? 'unlock identity' : 'skins & ships', col: '#00ff66', colN: 0x00ff66 },
       { id: 'bubble',   label: 'BUBBLE',   sub: 'reflect & expand', col: '#00aaff', colN: 0x00aaff },
       { id: 'survival', label: 'SURVIVAL', sub: 'heat & shield',    col: '#ff4444', colN: 0xff4444 },
       { id: 'combat',   label: 'COMBAT',   sub: 'chain & score',    col: '#ffdd00', colN: 0xffdd00 },
-      { id: 'powers',   label: 'POWERS',   sub: 'active ability',   col: '#ff8800', colN: 0xff8800 },
     ];
     this._catBtns = {};
     CATS.forEach((c, i) => {
-      const by = 150 + i * 56;
+      const by = 172 + i * 56; // shifted down so first button doesn't overlap '// CATEGORY' label
       const act = this._tab === c.id;
       const cbg = this.add.rectangle(LP / 2, by, LP - 16, 44, act ? c.colN : 0x000000, act ? 0.18 : 0.8).setInteractive({ useHandCursor: !act });
       const cbdr = this.add.rectangle(LP / 2, by, LP - 16, 44).setStrokeStyle(act ? 2 : 1, c.colN, act ? 0.9 : 0.2);
@@ -74,6 +74,7 @@ class ShopScene extends Phaser.Scene {
     bk.on('pointerover', () => bk.setColor('#ffaa00'));
     bk.on('pointerout',  () => bk.setColor('#443300'));
     bk.on('pointerdown', () => {
+      try { Snd.play('powerup'); } catch {}
       this.cameras.main.fadeOut(240, 0, 0, 0);
       this.time.delayedCall(240, () => {
         try{Snd.stopSceneMusic();}catch(e){}
@@ -89,7 +90,9 @@ class ShopScene extends Phaser.Scene {
     // Preview graphics layer (always on top of chassis content)
     this._previewGfx = this.add.graphics().setDepth(10);
 
-    this._buildChassis();
+    // Archetype-unify hook: route initial render through the same gate as _switchTab
+    if (Save.get('archetype_unify_v1', true)) this._buildArchetypes();
+    else this._buildChassis();
   }
 
   _switchTab(id) {
@@ -114,11 +117,23 @@ class ShopScene extends Phaser.Scene {
     });
     this._walletNum.setText(String(Save.shards()));
 
-    if (id === 'chassis')  this._buildChassis();
-    else if (id === 'bubble')   this._buildBubble();
-    else if (id === 'survival') this._buildSurvival();
-    else if (id === 'combat')   this._buildCombat();
-    else if (id === 'powers')   this._buildPowers();
+    if (id === 'chassis') {
+      // Archetype-unify hook: when enabled, render ARCHETYPES instead of skins
+      if (Save.get('archetype_unify_v1', true)) this._buildArchetypes();
+      else this._buildChassis();
+    }
+    else if (id === 'bubble') {
+      if (Save.get('archetype_unify_v1', true)) this._buildBubbleGrid();
+      else this._buildBubble();
+    }
+    else if (id === 'survival') {
+      if (Save.get('archetype_unify_v1', true)) this._buildSurvivalGrid();
+      else this._buildSurvival();
+    }
+    else if (id === 'combat') {
+      if (Save.get('archetype_unify_v1', true)) this._buildCombatGrid();
+      else this._buildCombat();
+    }
   }
 
   _reg(tab, obj) {
@@ -340,6 +355,610 @@ class ShopScene extends Phaser.Scene {
     } catch (e) {}
   }
 
+  // ══ ARCHETYPES TAB — live carousel preview ════════════
+  _buildArchetypes() {
+    const LP = 200;
+    const RX = LP;
+    const RW = W - LP;
+    const mono = "'Courier New',monospace";
+    const orb  = "'Orbitron',sans-serif";
+
+    // signal_forge is excluded from shop — it's earned by killing CORE.BREACH, not buyable
+    this._archetypes = (typeof ARCHETYPES !== 'undefined') ? ARCHETYPES.filter(a => a.id !== 'signal_forge') : [];
+    // Default to index 0; preserve last position across tab switches
+    if (this._archetypesIndex == null) this._archetypesIndex = 0;
+    this._archetypesAnimT = 0;
+
+    // ── Preview area ──
+    const PX = RX + RW / 2;
+    const PY = 220;
+    const PR = 110;
+
+    // Preview backdrop hex
+    const previewBg = this.add.graphics();
+    previewBg.lineStyle(1, 0x112211, 0.6);
+    previewBg.beginPath();
+    for (let s = 0; s < 6; s++) {
+      const a = (Math.PI / 3) * s;
+      s === 0 ? previewBg.moveTo(PX + Math.cos(a) * PR, PY + Math.sin(a) * PR)
+              : previewBg.lineTo(PX + Math.cos(a) * PR, PY + Math.sin(a) * PR);
+    }
+    previewBg.closePath(); previewBg.strokePath();
+    previewBg.fillStyle(0x001100, 0.4);
+    previewBg.beginPath();
+    for (let s = 0; s < 6; s++) {
+      const a = (Math.PI / 3) * s;
+      s === 0 ? previewBg.moveTo(PX + Math.cos(a) * PR, PY + Math.sin(a) * PR)
+              : previewBg.lineTo(PX + Math.cos(a) * PR, PY + Math.sin(a) * PR);
+    }
+    previewBg.closePath(); previewBg.fillPath();
+    this._reg('chassis', previewBg);
+
+    // Scan lines inside preview
+    const scanGfx = this.add.graphics();
+    scanGfx.lineStyle(1, 0x002200, 0.3);
+    for (let i = 0; i < 8; i++) {
+      const y = PY - PR + i * (PR * 2 / 8);
+      scanGfx.beginPath(); scanGfx.moveTo(PX - PR, y); scanGfx.lineTo(PX + PR, y); scanGfx.strokePath();
+    }
+    this._reg('chassis', scanGfx);
+
+    // Animated preview graphics (cleared+redrawn each frame in update())
+    this._archetypesGfx = this.add.graphics().setDepth(2);
+    this._archetypesPrevX = PX;
+    this._archetypesPrevY = PY;
+    this._reg('chassis', this._archetypesGfx);
+
+    // Large glyph in center (Text object, reused via _refreshArchetypes)
+    this._archetypesGlyphTxt = this.add.text(PX, PY, '', {
+      fontFamily: mono, fontSize: '56px', fontStyle: 'bold', color: '#00ffcc',
+    }).setOrigin(0.5).setDepth(3);
+    this._reg('chassis', this._archetypesGlyphTxt);
+
+    // ── Navigation arrows — tall side rails (matches BUBBLE/SURVIVAL/COMBAT/POWERS grids) ──
+    const ARROW_W = 36;
+    const ARROW_H = 480; // covers preview + info + button area
+    const arrowCy = 320;
+    const accentCol = 0x00ff66;
+    const idleCol   = '#446655';
+    const hoverCol  = '#aaffcc';
+
+    const lCx = RX + 18 + ARROW_W / 2;
+    const lBg = this.add.rectangle(lCx, arrowCy, ARROW_W, ARROW_H, 0x020c06, 0.85)
+      .setStrokeStyle(1, accentCol, 0.45)
+      .setInteractive({ useHandCursor: true });
+    const lAccent = this.add.rectangle(lCx - ARROW_W / 2 + 1.5, arrowCy, 2, ARROW_H, accentCol, 0.85).setOrigin(0.5);
+    const lTxt = this.add.text(lCx, arrowCy, '◄', { fontFamily: mono, fontSize: '24px', fontStyle: 'bold', color: idleCol }).setOrigin(0.5);
+    lBg.on('pointerover', () => { lBg.setFillStyle(0x0a1a14, 0.92); lBg.setStrokeStyle(2, accentCol, 0.95); lAccent.setFillStyle(accentCol, 1.0); lTxt.setColor(hoverCol); });
+    lBg.on('pointerout',  () => { lBg.setFillStyle(0x020c06, 0.85); lBg.setStrokeStyle(1, accentCol, 0.45); lAccent.setFillStyle(accentCol, 0.85); lTxt.setColor(idleCol); });
+    lBg.on('pointerdown', () => { this._archetypesIndex = (this._archetypesIndex - 1 + this._archetypes.length) % this._archetypes.length; this._refreshArchetypes(); });
+
+    const rCx = W - 18 - ARROW_W / 2;
+    const rBg = this.add.rectangle(rCx, arrowCy, ARROW_W, ARROW_H, 0x020c06, 0.85)
+      .setStrokeStyle(1, accentCol, 0.45)
+      .setInteractive({ useHandCursor: true });
+    const rAccent = this.add.rectangle(rCx + ARROW_W / 2 - 1.5, arrowCy, 2, ARROW_H, accentCol, 0.85).setOrigin(0.5);
+    const rTxt = this.add.text(rCx, arrowCy, '►', { fontFamily: mono, fontSize: '24px', fontStyle: 'bold', color: idleCol }).setOrigin(0.5);
+    rBg.on('pointerover', () => { rBg.setFillStyle(0x0a1a14, 0.92); rBg.setStrokeStyle(2, accentCol, 0.95); rAccent.setFillStyle(accentCol, 1.0); rTxt.setColor(hoverCol); });
+    rBg.on('pointerout',  () => { rBg.setFillStyle(0x020c06, 0.85); rBg.setStrokeStyle(1, accentCol, 0.45); rAccent.setFillStyle(accentCol, 0.85); rTxt.setColor(idleCol); });
+    rBg.on('pointerdown', () => { this._archetypesIndex = (this._archetypesIndex + 1) % this._archetypes.length; this._refreshArchetypes(); });
+
+    [lBg, lAccent, lTxt, rBg, rAccent, rTxt].forEach(o => this._reg('chassis', o));
+
+    // ── Counter dots (7 dots) ──
+    const dotY = PY + PR + 18;
+    const dotGap = 18;
+    const dotsStart = PX - ((this._archetypes.length - 1) * dotGap) / 2;
+    this._archetypesDots = [];
+    this._archetypes.forEach((_a, i) => {
+      const d = this.add.circle(dotsStart + i * dotGap, dotY, 4, 0x00ff66, i === this._archetypesIndex ? 0.95 : 0.25);
+      this._archetypesDots.push(d);
+      this._reg('chassis', d);
+    });
+
+    // ── Info text below preview (name / tagline / passive / status) ──
+    const infoY = dotY + 36;
+    this._archetypesName = this.add.text(PX, infoY, '', {
+      fontFamily: orb, fontSize: '28px', fontStyle: '900', color: '#00ffcc', letterSpacing: 4,
+    }).setOrigin(0.5);
+    this._archetypesTagline = this.add.text(PX, infoY + 36, '', {
+      fontFamily: mono, fontSize: '12px', color: '#557788', letterSpacing: 1,
+    }).setOrigin(0.5);
+    this._archetypesPassiveLbl = this.add.text(PX, infoY + 60, 'PASSIVE', {
+      fontFamily: mono, fontSize: '9px', color: '#886633', letterSpacing: 3,
+    }).setOrigin(0.5);
+    this._archetypesPassive = this.add.text(PX, infoY + 76, '', {
+      fontFamily: mono, fontSize: '12px', color: '#aaccaa', wordWrap: { width: RW - 120 }, align: 'center',
+    }).setOrigin(0.5);
+    this._archetypesStatus = this.add.text(PX, infoY + 130, '', {
+      fontFamily: mono, fontSize: '14px', fontStyle: 'bold', color: '#ffdd00',
+    }).setOrigin(0.5);
+    [this._archetypesName, this._archetypesTagline, this._archetypesPassiveLbl, this._archetypesPassive, this._archetypesStatus].forEach(o => this._reg('chassis', o));
+
+    // ── Action button (PURCHASE — only shown when unowned) ──
+    const btnY = infoY + 175;
+    this._archetypesBtnBg = this.add.rectangle(PX, btnY, 240, 38, 0x000000, 0.96)
+      .setStrokeStyle(1, 0x00ff66, 0.5).setInteractive({ useHandCursor: true });
+    this._archetypesBtnTxt = this.add.text(PX, btnY, '', {
+      fontFamily: mono, fontSize: '13px', fontStyle: 'bold', color: '#00ff66', letterSpacing: 2,
+    }).setOrigin(0.5);
+    this._archetypesBtnBg.on('pointerover', () => { if (this._archetypesBtnBg._active) this._archetypesBtnBg.setFillStyle(0x002211, 0.96); });
+    this._archetypesBtnBg.on('pointerout',  () => { if (this._archetypesBtnBg._active) this._archetypesBtnBg.setFillStyle(0x000000, 0.96); });
+    this._archetypesBtnBg.on('pointerdown', () => this._archetypeAction());
+    this._reg('chassis', this._archetypesBtnBg);
+    this._reg('chassis', this._archetypesBtnTxt);
+
+    this._refreshArchetypes();
+  }
+
+  _refreshArchetypes() {
+    const arch = this._archetypes[this._archetypesIndex];
+    if (!arch) return;
+    const colHex = '#' + arch.col.toString(16).padStart(6, '0');
+    const owned = Save.ownsArchetype(arch.id);
+    const cost = arch.cost || 0;
+    const canAfford = Save.shards() >= cost;
+
+    // Glyph
+    if (this._archetypesGlyphTxt) {
+      this._archetypesGlyphTxt.setText(arch.icon);
+      this._archetypesGlyphTxt.setColor(colHex);
+    }
+
+    // Info
+    if (this._archetypesName)    { this._archetypesName.setText(arch.name).setColor(colHex); }
+    if (this._archetypesTagline) { this._archetypesTagline.setText(arch.tagline || ''); }
+    if (this._archetypesPassive) { this._archetypesPassive.setText(arch.passive || ''); }
+
+    // Status text below info — shop only shows unlock state (equipping happens in ArchetypeSelectScene)
+    if (this._archetypesStatus) {
+      if (owned) { this._archetypesStatus.setText('✓ UNLOCKED').setColor('#aaffcc'); }
+      else { this._archetypesStatus.setText(`COST: ${cost} ◈`).setColor(canAfford ? '#ffdd00' : '#553322'); }
+    }
+
+    // Button visibility — only show PURCHASE when unowned
+    if (this._archetypesBtnBg && this._archetypesBtnTxt) {
+      if (!owned) {
+        this._archetypesBtnBg.setVisible(true).setStrokeStyle(1, canAfford ? 0x00ff66 : 0x553322, 0.6);
+        this._archetypesBtnTxt.setVisible(true).setText(`[ PURCHASE — ${cost} ◈ ]`).setColor(canAfford ? '#00ff66' : '#553322');
+        this._archetypesBtnBg._active = canAfford;
+      } else {
+        this._archetypesBtnBg.setVisible(false);
+        this._archetypesBtnTxt.setVisible(false);
+        this._archetypesBtnBg._active = false;
+      }
+    }
+
+    // Dot highlight
+    if (this._archetypesDots) {
+      this._archetypesDots.forEach((d, i) => d.setFillStyle(0x00ff66, i === this._archetypesIndex ? 0.95 : 0.25));
+    }
+  }
+
+  _archetypeAction() {
+    const arch = this._archetypes && this._archetypes[this._archetypesIndex];
+    if (!arch) return;
+    if (Save.ownsArchetype(arch.id)) return; // shop doesn't equip — that's ArchetypeSelectScene's job
+    const cost = arch.cost || 0;
+    if (Save.spendShards(cost)) {
+      Save.unlockArchetype(arch.id);
+      this._walletNum.setText(String(Save.shards()));
+      this.shardsT.setText(`◈ ${Save.shards()} SHARDS`);
+      this._msg && this._msg(`${arch.name} UNLOCKED`);
+      this._refreshArchetypes();
+    } else {
+      this._msg && this._msg('INSUFFICIENT ◈');
+    }
+  }
+
+  _drawArchetypePreview(g, t) {
+    const arch = this._archetypes && this._archetypes[this._archetypesIndex];
+    if (!arch) return;
+    const x = this._archetypesPrevX;
+    const y = this._archetypesPrevY;
+    const c = arch.col;
+
+    // Outer rotating ring
+    const rotOuter = t * 0.6;
+    g.lineStyle(1.5, c, 0.4 + 0.2 * Math.sin(t * 2));
+    g.beginPath();
+    const ringR = 70;
+    for (let s = 0; s < 6; s++) {
+      const a = rotOuter + (Math.PI / 3) * s;
+      s === 0 ? g.moveTo(x + Math.cos(a) * ringR, y + Math.sin(a) * ringR)
+              : g.lineTo(x + Math.cos(a) * ringR, y + Math.sin(a) * ringR);
+    }
+    g.closePath(); g.strokePath();
+
+    // Inner counter-rotating hex
+    const rotInner = -t * 1.2;
+    const innerR = 44 + 2 * Math.sin(t * 3);
+    g.lineStyle(2, c, 0.85);
+    g.beginPath();
+    for (let s = 0; s < 6; s++) {
+      const a = rotInner + (Math.PI / 3) * s + Math.PI / 6;
+      s === 0 ? g.moveTo(x + Math.cos(a) * innerR, y + Math.sin(a) * innerR)
+              : g.lineTo(x + Math.cos(a) * innerR, y + Math.sin(a) * innerR);
+    }
+    g.closePath(); g.strokePath();
+    g.fillStyle(c, 0.15);
+    g.beginPath();
+    for (let s = 0; s < 6; s++) {
+      const a = rotInner + (Math.PI / 3) * s + Math.PI / 6;
+      s === 0 ? g.moveTo(x + Math.cos(a) * (innerR - 3), y + Math.sin(a) * (innerR - 3))
+              : g.lineTo(x + Math.cos(a) * (innerR - 3), y + Math.sin(a) * (innerR - 3));
+    }
+    g.closePath(); g.fillPath();
+  }
+
+  // ══ SHARED 4-UP CAROUSEL GRID BUILDER ══════════════════
+  // Used by BUBBLE / SURVIVAL / COMBAT / POWERS tabs when archetype_unify_v1 flag is ON.
+  // config = { title, sub, headerCol, animFn, getStatus(item), onAction(item) }
+  // getStatus returns { text, color, btnLabel?, btnEnabled? }
+  _buildItemGrid(tabId, items, config) {
+    const LP = 200;
+    const RX = LP;
+    const RW = W - LP;
+    const mono = "'Courier New',monospace";
+    const orb  = "'Orbitron',sans-serif";
+
+    if (!this._gridIndex)  this._gridIndex  = {};
+    if (!this._gridCards)  this._gridCards  = {};
+    if (!this._gridDots)   this._gridDots   = {};
+    if (!this._gridConfig) this._gridConfig = {};
+    if (this._gridIndex[tabId] == null) this._gridIndex[tabId] = 0;
+
+    const ITEMS_PER_PAGE = 4;
+    const pageCount = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+    if (this._gridIndex[tabId] >= pageCount) this._gridIndex[tabId] = 0;
+
+    this._gridConfig[tabId] = config;
+    this._gridCards[tabId] = [];
+    this._gridDots[tabId]  = [];
+
+    // Header
+    this._reg(tabId, this.add.text(RX + RW / 2, 50, (config.title || tabId).toUpperCase(), {
+      fontFamily: orb, fontSize: '16px', fontStyle: '900', color: config.headerCol || '#00aaff', letterSpacing: 4,
+    }).setOrigin(0.5));
+    this._reg(tabId, this.add.text(RX + RW / 2, 72, '// ' + (config.sub || ''), {
+      fontFamily: mono, fontSize: '10px', color: '#557788', letterSpacing: 1,
+    }).setOrigin(0.5));
+
+    // Layout — 4 cards in a horizontal row
+    const CARD_W = 230;
+    const CARD_H = 360;
+    const CARD_GAP = 14;
+    const totalW = ITEMS_PER_PAGE * CARD_W + (ITEMS_PER_PAGE - 1) * CARD_GAP;
+    const GRID_X = RX + (RW - totalW) / 2;
+    const GRID_Y = 110;
+    const dotY = GRID_Y + CARD_H + 26;
+
+    // Refresh function — rebuilds cards + dots when paging
+    const refreshGrid = () => {
+      (this._gridCards[tabId] || []).forEach(c => { try { c.objs.forEach(o => o && o.destroy()); } catch {} });
+      (this._gridDots[tabId]  || []).forEach(d => { try { d && d.destroy(); } catch {} });
+      this._gridCards[tabId] = [];
+      this._gridDots[tabId]  = [];
+
+      const page = this._gridIndex[tabId];
+      const startIdx = page * ITEMS_PER_PAGE;
+
+      for (let slot = 0; slot < ITEMS_PER_PAGE; slot++) {
+        const itemIdx = startIdx + slot;
+        const item = items[itemIdx];
+        if (!item) continue;
+
+        const cardX = GRID_X + slot * (CARD_W + CARD_GAP);
+        const cardY = GRID_Y;
+        const cardCx = cardX + CARD_W / 2;
+        const colN = item.colN || 0xffffff;
+        const colHex = item.col || '#ffffff';
+
+        // Card bg + accent
+        const bg = this.add.rectangle(cardX, cardY, CARD_W, CARD_H, 0x020c06, 0.94)
+          .setOrigin(0, 0).setStrokeStyle(1, colN, 0.45);
+        const topBar = this.add.rectangle(cardX, cardY, CARD_W, 3, colN, 0.9).setOrigin(0, 0);
+
+        // Name
+        const nameTxt = this.add.text(cardCx, cardY + 18, item.name, {
+          fontFamily: mono, fontSize: '13px', fontStyle: 'bold', color: colHex, letterSpacing: 2,
+        }).setOrigin(0.5);
+
+        // Embedded animation Graphics — positioned at card-anim-center, scaled down
+        const animCx = cardCx;
+        const animCy = cardY + 120;
+        const animGfx = this.add.graphics();
+        animGfx.setPosition(animCx, animCy);
+        animGfx.setScale(0.6);
+
+        // Description
+        const descTxt = this.add.text(cardCx, cardY + 220, item.desc || '', {
+          fontFamily: mono, fontSize: '10px', color: '#889aa9',
+          wordWrap: { width: CARD_W - 24 }, align: 'center',
+        }).setOrigin(0.5, 0);
+
+        // Status + optional button
+        const status = config.getStatus(item);
+        const statusY = cardY + CARD_H - 56;
+        const statusTxt = this.add.text(cardCx, statusY, status.text || '', {
+          fontFamily: mono, fontSize: '11px', fontStyle: 'bold', color: status.color || '#aaffcc',
+        }).setOrigin(0.5);
+
+        const objs = [bg, topBar, nameTxt, animGfx, descTxt, statusTxt];
+
+        if (status.btnLabel) {
+          const btnY = cardY + CARD_H - 24;
+          const btnEnabled = !!status.btnEnabled;
+          const btnBg = this.add.rectangle(cardCx, btnY, CARD_W - 24, 30, 0x000000, 0.96)
+            .setStrokeStyle(1, btnEnabled ? colN : 0x553322, 0.6)
+            .setInteractive({ useHandCursor: btnEnabled });
+          const btnTxt = this.add.text(cardCx, btnY, status.btnLabel, {
+            fontFamily: mono, fontSize: '11px', fontStyle: 'bold', color: btnEnabled ? colHex : '#553322',
+          }).setOrigin(0.5);
+          btnBg._enabled = btnEnabled;
+          btnBg.on('pointerover', () => { if (btnBg._enabled) btnBg.setFillStyle(0x0a1a14, 0.96); });
+          btnBg.on('pointerout',  () => { if (btnBg._enabled) btnBg.setFillStyle(0x000000, 0.96); });
+          btnBg.on('pointerdown', () => {
+            if (!btnBg._enabled) return;
+            try { config.onAction(item); } catch (e) { console.error('[shop grid] onAction failed', e); }
+            refreshGrid();
+            // Sync wallet shards display after purchase
+            try {
+              this._walletNum.setText(String(Save.shards()));
+              this.shardsT.setText(`◈ ${Save.shards()} SHARDS`);
+            } catch {}
+          });
+          objs.push(btnBg, btnTxt);
+        }
+
+        objs.forEach(o => this._reg(tabId, o));
+        this._gridCards[tabId].push({ item, gfx: animGfx, animT: slot * 0.4, cx: 0, cy: 0, objs });
+      }
+
+      // Page dots
+      const dotGap = 18;
+      const dotsStart = RX + RW / 2 - (pageCount - 1) * dotGap / 2;
+      for (let p = 0; p < pageCount; p++) {
+        const d = this.add.circle(dotsStart + p * dotGap, dotY, 4, 0x00ff66, p === this._gridIndex[tabId] ? 0.95 : 0.25);
+        this._reg(tabId, d);
+        this._gridDots[tabId].push(d);
+      }
+    };
+
+    // Page-nav arrows — tall side rails (full-height buttons, matches shop tab style)
+    if (pageCount > 1) {
+      const ARROW_W = 36;
+      const ARROW_H = CARD_H;
+      const arrowCy = GRID_Y + CARD_H / 2;
+      const accentCol = 0x00ff66;
+      const idleCol   = '#446655';
+      const hoverCol  = '#aaffcc';
+
+      // ── LEFT RAIL ──
+      const lCx = RX + 18 + ARROW_W / 2;
+      const lBg = this.add.rectangle(lCx, arrowCy, ARROW_W, ARROW_H, 0x020c06, 0.85)
+        .setStrokeStyle(1, accentCol, 0.45)
+        .setInteractive({ useHandCursor: true });
+      const lAccent = this.add.rectangle(lCx - ARROW_W / 2 + 1.5, arrowCy, 2, ARROW_H, accentCol, 0.85).setOrigin(0.5);
+      const lTxt = this.add.text(lCx, arrowCy, '◄', { fontFamily: mono, fontSize: '24px', fontStyle: 'bold', color: idleCol }).setOrigin(0.5);
+      lBg.on('pointerover', () => {
+        lBg.setFillStyle(0x0a1a14, 0.92);
+        lBg.setStrokeStyle(2, accentCol, 0.95);
+        lAccent.setFillStyle(accentCol, 1.0);
+        lTxt.setColor(hoverCol);
+      });
+      lBg.on('pointerout', () => {
+        lBg.setFillStyle(0x020c06, 0.85);
+        lBg.setStrokeStyle(1, accentCol, 0.45);
+        lAccent.setFillStyle(accentCol, 0.85);
+        lTxt.setColor(idleCol);
+      });
+      lBg.on('pointerdown', () => { this._gridIndex[tabId] = (this._gridIndex[tabId] - 1 + pageCount) % pageCount; refreshGrid(); });
+
+      // ── RIGHT RAIL ──
+      const rCx = W - 18 - ARROW_W / 2;
+      const rBg = this.add.rectangle(rCx, arrowCy, ARROW_W, ARROW_H, 0x020c06, 0.85)
+        .setStrokeStyle(1, accentCol, 0.45)
+        .setInteractive({ useHandCursor: true });
+      const rAccent = this.add.rectangle(rCx + ARROW_W / 2 - 1.5, arrowCy, 2, ARROW_H, accentCol, 0.85).setOrigin(0.5);
+      const rTxt = this.add.text(rCx, arrowCy, '►', { fontFamily: mono, fontSize: '24px', fontStyle: 'bold', color: idleCol }).setOrigin(0.5);
+      rBg.on('pointerover', () => {
+        rBg.setFillStyle(0x0a1a14, 0.92);
+        rBg.setStrokeStyle(2, accentCol, 0.95);
+        rAccent.setFillStyle(accentCol, 1.0);
+        rTxt.setColor(hoverCol);
+      });
+      rBg.on('pointerout', () => {
+        rBg.setFillStyle(0x020c06, 0.85);
+        rBg.setStrokeStyle(1, accentCol, 0.45);
+        rAccent.setFillStyle(accentCol, 0.85);
+        rTxt.setColor(idleCol);
+      });
+      rBg.on('pointerdown', () => { this._gridIndex[tabId] = (this._gridIndex[tabId] + 1) % pageCount; refreshGrid(); });
+
+      [lBg, lAccent, lTxt, rBg, rAccent, rTxt].forEach(o => this._reg(tabId, o));
+    }
+
+    refreshGrid();
+  }
+
+  // ── BUBBLE GRID WRAPPER (carousel design) ──
+  _buildBubbleGrid() {
+    const META = [
+      { id: 'overclock_chip', name: 'OVERCLOCK_CHIP',   cost: 700, col: '#ff8800', colN: 0xff8800, desc: 'Bubble expands 25% faster permanently',           anim: 'expand'  },
+      { id: 'signal_amp',     name: 'SIGNAL_AMPLIFIER', cost: 600, col: '#00ffcc', colN: 0x00ffcc, desc: 'Reflected bullets deal 1.5x damage',              anim: 'reflect' },
+      { id: 'kernel_access',  name: 'KERNEL_ACCESS',    cost: 800, col: '#00ff66', colN: 0x00ff66, desc: 'Surge meter fills 50% faster',                    anim: 'surge'   },
+      { id: 'data_compress',  name: 'DATA_COMPRESSION', cost: 300, col: '#ffdd00', colN: 0xffdd00, desc: 'Start each run with 1 random free upgrade',       anim: 'cards'   },
+      { id: 'heat_vent',      name: 'HEAT_VENT',        cost: 450, col: '#ff8800', colN: 0xff8800, desc: 'Every 5th reflect skips the heat gain',           anim: 'reflect' },
+      { id: 'lens_focus',     name: 'LENS_FOCUS',       cost: 600, col: '#ffdd00', colN: 0xffdd00, desc: 'Reflects at full bubble radius deal x2 damage',   anim: 'reflect' },
+      { id: 'primed_bubble',  name: 'PRIMED_BUBBLE',    cost: 400, col: '#aaffdd', colN: 0xaaffdd, desc: 'Wave starts with bubble at 40% radius',           anim: 'expand'  },
+      { id: 'resonance',      name: 'RESONANCE',        cost: 550, col: '#aa44ff', colN: 0xaa44ff, desc: 'Bubble expand rate +30% on boss waves',           anim: 'expand'  },
+    ];
+    this._buildItemGrid('bubble', META, {
+      title:     'BUBBLE',
+      sub:       'reflect & expand',
+      headerCol: '#00aaff',
+      animFn:    (g, t, anim) => this._drawBubbleAnim(g, t, anim, 0, 0),
+      getStatus: (item) => {
+        const owned = Save.hasMeta(item.id);
+        if (owned) return { text: '✓ INSTALLED', color: '#aaffcc' };
+        const canAfford = Save.shards() >= item.cost;
+        return {
+          text: `${item.cost} ◈`,
+          color: canAfford ? '#ffdd00' : '#553322',
+          btnLabel: `[ INSTALL — ${item.cost} ◈ ]`,
+          btnEnabled: canAfford,
+        };
+      },
+      onAction: (item) => {
+        if (Save.spendShards(item.cost)) {
+          Save.setMeta(item.id, true);
+          this._msg && this._msg(`${item.name} INSTALLED`);
+        } else {
+          this._msg && this._msg('INSUFFICIENT SHARDS');
+        }
+      },
+    });
+  }
+
+  // ── SURVIVAL GRID WRAPPER (carousel design) ──
+  _buildSurvivalGrid() {
+    const META = [
+      { id: 'firewall_seed',  name: 'FIREWALL_SEED',    cost: 500, col: '#00aaff', colN: 0x00aaff, desc: 'Start with shield layer active (2 hits)',     anim: 'shield'   },
+      { id: 'redundant_path', name: 'REDUNDANT_PATH',   cost: 900, col: '#aa00ff', colN: 0xaa00ff, desc: 'One free process recovery on death',           anim: 'revive'   },
+      { id: 'redundant_buf',  name: 'REDUNDANT_BUFFER', cost: 400, col: '#00aaff', colN: 0x00aaff, desc: '+1 shield hit on top of current tier',         anim: 'stackshield' },
+      { id: 'heat_sink',      name: 'HEAT_SINK',        cost: 350, col: '#ff4400', colN: 0xff4400, desc: 'Overheat cooldown is 30% faster',              anim: 'heatsink' },
+      { id: 'coolant_loop',   name: 'COOLANT_LOOP',     cost: 450, col: '#ff6600', colN: 0xff6600, desc: 'Bubble heat accumulates 25% slower',           anim: 'heatsink' },
+      { id: 'ghost_protocol', name: 'GHOST_PROTOCOL',   cost: 900, col: '#aaaaff', colN: 0xaaaaff, desc: '1s invisibility after overheat',               anim: 'ghost'    },
+      { id: 'cooldown_patch', name: 'COOLDOWN_PATCH',   cost: 450, col: '#00ff88', colN: 0x00ff88, desc: 'Overheat lockout 3s to 1.8s',                  anim: 'cooldown' },
+      { id: 'regen_patch',    name: 'REGEN_PATCH',      cost: 600, col: '#00ff88', colN: 0x00ff88, desc: 'Restore 1 shield hit per wave clear',          anim: 'regen'    },
+      { id: 'dash_patch',     name: 'DASH_PATCH',       cost: 400, col: '#00ff88', colN: 0x00ff88, desc: 'Dash cooldown 1.2s to 0.8s permanently',       anim: 'dash'     },
+      { id: 'thermal_bleed',  name: 'THERMAL_BLEED',    cost: 500, col: '#ff4400', colN: 0xff4400, desc: 'Overheat ring damages nearby enemies',         anim: 'heatsink' },
+      { id: 'last_stand',     name: 'LAST_STAND',       cost: 500, col: '#ff2244', colN: 0xff2244, desc: 'Bubble expand rate +30% while shield is down', anim: 'shield'   },
+      { id: 'kinetic_damper', name: 'KINETIC_DAMPER',   cost: 450, col: '#4488ff', colN: 0x4488ff, desc: 'Dash invincibility duration +0.3s',            anim: 'dash'     },
+    ];
+    this._buildItemGrid('survival', META, {
+      title:     'SURVIVAL',
+      sub:       'heat & shield',
+      headerCol: '#ff4444',
+      animFn:    (g, t, anim) => this._drawSurvivalAnim(g, t, anim, 0, 0),
+      getStatus: (item) => {
+        const owned = Save.hasMeta(item.id);
+        if (owned) return { text: '✓ INSTALLED', color: '#aaffcc' };
+        const canAfford = Save.shards() >= item.cost;
+        return { text: `${item.cost} ◈`, color: canAfford ? '#ffdd00' : '#553322', btnLabel: `[ INSTALL — ${item.cost} ◈ ]`, btnEnabled: canAfford };
+      },
+      onAction: (item) => {
+        if (Save.spendShards(item.cost)) { Save.setMeta(item.id, true); this._msg && this._msg(`${item.name} INSTALLED`); }
+        else this._msg && this._msg('INSUFFICIENT SHARDS');
+      },
+    });
+  }
+
+  // ── COMBAT GRID WRAPPER (carousel design) ──
+  _buildCombatGrid() {
+    const META = [
+      { id: 'data_cache',       name: 'DATA_CACHE',       cost: 450, col: '#ffdd00', colN: 0xffdd00, desc: 'Score multiplier x1.25 on all kills',          anim: 'score'  },
+      { id: 'primed_signal',    name: 'PRIMED_SIGNAL',    cost: 650, col: '#ff6600', colN: 0xff6600, desc: 'Signal meter starts 50% full each run',        anim: 'primed' },
+      { id: 'packet_router',    name: 'PACKET_ROUTER',    cost: 500, col: '#00cc66', colN: 0x00cc66, desc: 'Ping cooldown reduced 15s to 10s',             anim: 'ping'   },
+      { id: 'chain_patch',      name: 'CHAIN_PATCH',      cost: 500, col: '#00ff88', colN: 0x00ff88, desc: 'Chain reaction depth +1 permanently',          anim: 'chain'  },
+      { id: 'combo_memory',     name: 'COMBO_MEMORY',     cost: 400, col: '#ff88cc', colN: 0xff88cc, desc: 'Combo timer +0.5s (stacks with SLOW_COMBO)',   anim: 'score'  },
+      { id: 'shard_doubler',    name: 'SHARD_DOUBLER',    cost: 600, col: '#ffdd00', colN: 0xffdd00, desc: 'Per-kill shard drops doubled',                 anim: 'score'  },
+      { id: 'boss_trace',       name: 'BOSS_TRACE',       cost: 500, col: '#aa44ff', colN: 0xaa44ff, desc: 'Score on boss kills x1.25',                    anim: 'score'  },
+      { id: 'perfect_reflect',  name: 'PERFECT_REFLECT',  cost: 700, col: '#00ffcc', colN: 0x00ffcc, desc: 'After reflect-kill, next 2s score x2',         anim: 'chain'  },
+      { id: 'fragment_refinery',name: 'FRAGMENT_REFINERY',cost: 500, col: '#ffaa00', colN: 0xffaa00, desc: 'Unlocks shard→fragment conversion (5◈ = 1▲)',  anim: 'score'  },
+    ];
+    this._buildItemGrid('combat', META, {
+      title:     'COMBAT',
+      sub:       'chain & score',
+      headerCol: '#ffdd00',
+      animFn:    (g, t, anim) => this._drawCombatAnim(g, t, anim, 0, 0),
+      getStatus: (item) => {
+        const owned = Save.hasMeta(item.id);
+        if (owned) return { text: '✓ INSTALLED', color: '#aaffcc' };
+        const canAfford = Save.shards() >= item.cost;
+        return { text: `${item.cost} ◈`, color: canAfford ? '#ffdd00' : '#553322', btnLabel: `[ INSTALL — ${item.cost} ◈ ]`, btnEnabled: canAfford };
+      },
+      onAction: (item) => {
+        if (Save.spendShards(item.cost)) { Save.setMeta(item.id, true); this._msg && this._msg(`${item.name} INSTALLED`); }
+        else this._msg && this._msg('INSUFFICIENT SHARDS');
+      },
+    });
+    // Fragment Refinery conversion panel — only shown when owned
+    if (Save.hasMeta('fragment_refinery')) {
+      const RX = 200;
+      const RW = W - RX;
+      const cx = RX + RW / 2;
+      const py = 110 + 360 + 56;
+      const mono = "'Courier New',monospace";
+      const lbl = this.add.text(cx - 120, py, '◆ FRAGMENT REFINERY ACTIVE — convert shards', {
+        fontFamily: mono, fontSize: '11px', color: '#ffaa00', fontStyle: 'bold',
+      }).setOrigin(0, 0.5);
+      const btnBg = this.add.rectangle(cx + 140, py, 160, 26, 0x000000, 0.96)
+        .setStrokeStyle(1, 0xffaa00, 0.7).setInteractive({ useHandCursor: true });
+      const btnTxt = this.add.text(cx + 140, py, '[ 5 ◈ → 1 ▲ ]', {
+        fontFamily: mono, fontSize: '11px', fontStyle: 'bold', color: '#ffaa00',
+      }).setOrigin(0.5);
+      btnBg.on('pointerover', () => btnBg.setFillStyle(0x1a1100, 0.96));
+      btnBg.on('pointerout',  () => btnBg.setFillStyle(0x000000, 0.96));
+      btnBg.on('pointerdown', () => {
+        if (Save.shards() < 5) { this._msg && this._msg('NEED 5 ◈'); return; }
+        Save.spendShards(5);
+        Save.addFragments(1);
+        try {
+          this._walletNum.setText(String(Save.shards()));
+          this.shardsT.setText(`◈ ${Save.shards()} SHARDS`);
+        } catch {}
+        this._msg && this._msg('+1 FRAGMENT');
+      });
+      [lbl, btnBg, btnTxt].forEach(o => this._reg('combat', o));
+    }
+  }
+
+  // ── POWERS GRID WRAPPER (carousel design, 3-state: BUY / EQUIP / EQUIPPED) ──
+  _buildPowersGrid() {
+    const POWERS = [
+      { id:'ping',            name:'PING',            cost: 0,    col:'#00ff66', colN:0x00ff66, desc:'Emit hex rings reversing nearby bullets. CD 15s. Default power, free.', anim:'ping'    },
+      { id:'emp_burst',       name:'EMP_BURST',       cost: 800,  col:'#ffffff', colN:0xffffff, desc:'Stuns ALL enemies for 4s. Freezes enemy bullets. CD 22s.',              anim:'emp'     },
+      { id:'null_zone',       name:'NULL_ZONE',       cost: 1000, col:'#aa00ff', colN:0xaa00ff, desc:'Void node at cursor. Deletes bullets in 130px for 6s. CD 28s.',         anim:'null'    },
+      { id:'overclock_surge', name:'OVERCLOCK_SURGE', cost: 1200, col:'#ffdd00', colN:0xffdd00, desc:'Triple bubble speed, zero heat, gold bubble for 4s. CD 35s.',           anim:'surge'   },
+      { id:'chain_trigger',   name:'CHAIN_TRIGGER',   cost: 900,  col:'#ff6600', colN:0xff6600, desc:'Detonates ALL reflected bullets. Massive chain. CD 18s.',                anim:'chain'   },
+      { id:'ghost_step',      name:'GHOST_STEP',      cost: 700,  col:'#aaaaff', colN:0xaaaaff, desc:'Enemies lose targeting for 3s. They wander randomly. CD 26s.',          anim:'ghost'   },
+      { id:'corrupt_wave',    name:'CORRUPT_WAVE',    cost: 1100, col:'#00ff44', colN:0x00ff44, desc:'All enemies within 300px gain +2 corruption. CD 38s.',                  anim:'corrupt' },
+      { id:'system_restore',  name:'SYSTEM_RESTORE',  cost: 600,  col:'#00ffcc', colN:0x00ffcc, desc:'Clears overheat. Regenerates shield. Refills 30% surge. 1/wave.',       anim:'restore' },
+      { id:'decoy_packet',    name:'DECOY_PACKET',    cost: 750,  col:'#ff8800', colN:0xff8800, desc:'Drop a decoy. All enemies retarget it for 6s. CD 32s.',                 anim:'decoy'   },
+    ];
+    this._buildItemGrid('powers', POWERS, {
+      title:     'POWERS',
+      sub:       'active ability',
+      headerCol: '#ff8800',
+      animFn:    (g, t, anim) => this._drawPowersAnim(g, t, anim, 0, 0),
+      getStatus: (item) => {
+        const owned = item.cost === 0 || Save.meta('power_' + item.id, false);
+        const equipped = Save.get('equipped_power', 'ping') === item.id;
+        if (equipped) return { text: '◆ EQUIPPED', color: item.col };
+        if (owned)    return { text: '[ EQUIP ]',  color: '#aaffcc', btnLabel: '[ EQUIP ]', btnEnabled: true };
+        const canAfford = Save.shards() >= item.cost;
+        return { text: `${item.cost} ◈`, color: canAfford ? '#ffdd00' : '#553322', btnLabel: `[ BUY — ${item.cost} ◈ ]`, btnEnabled: canAfford };
+      },
+      onAction: (item) => {
+        const owned = item.cost === 0 || Save.meta('power_' + item.id, false);
+        if (owned) {
+          Save.set('equipped_power', item.id);
+          this._msg && this._msg(`${item.name} EQUIPPED`);
+          return;
+        }
+        if (Save.spendShards(item.cost)) {
+          Save.setMeta('power_' + item.id, true);
+          Save.set('equipped_power', item.id);
+          this._msg && this._msg(`${item.name} ACQUIRED — EQUIPPED`);
+        } else {
+          this._msg && this._msg('INSUFFICIENT SHARDS');
+        }
+      },
+    });
+  }
+
   // ── Scroll pane helper ──
   _makeScrollPane(tab, contentHeight) {
     const RP = 200, CLIP_TOP = 58, CLIP_BOT = H - 36;
@@ -427,6 +1046,10 @@ class ShopScene extends Phaser.Scene {
       { id: 'signal_amp',     name: 'SIGNAL_AMPLIFIER', cost: 600, col: '#00ffcc', colN: 0x00ffcc, desc: 'Reflected bullets deal 1.5x damage',             anim: 'reflect'  },
       { id: 'kernel_access',  name: 'KERNEL_ACCESS',    cost: 800, col: '#00ff66', colN: 0x00ff66, desc: 'Surge meter fills 50% faster',                   anim: 'surge'    },
       { id: 'data_compress',  name: 'DATA_COMPRESSION', cost: 300, col: '#ffdd00', colN: 0xffdd00, desc: 'Start each run with 1 random free upgrade',      anim: 'cards'    },
+      { id: 'heat_vent',      name: 'HEAT_VENT',        cost: 450, col: '#ff8800', colN: 0xff8800, desc: 'Every 5th reflect skips the heat gain',           anim: 'reflect'  },
+      { id: 'lens_focus',     name: 'LENS_FOCUS',       cost: 600, col: '#ffdd00', colN: 0xffdd00, desc: 'Reflects at full bubble radius deal x2 damage',   anim: 'reflect'  },
+      { id: 'primed_bubble',  name: 'PRIMED_BUBBLE',    cost: 400, col: '#aaffdd', colN: 0xaaffdd, desc: 'Wave starts with bubble at 40% radius',           anim: 'expand'   },
+      { id: 'resonance',      name: 'RESONANCE',        cost: 550, col: '#aa44ff', colN: 0xaa44ff, desc: 'Bubble expand rate +30% on boss waves',           anim: 'expand'   },
     ];
 
     this._bubbleIndex = 0;
@@ -799,10 +1422,14 @@ class ShopScene extends Phaser.Scene {
       { id: 'redundant_path', name: 'REDUNDANT_PATH',   cost: 900, col: '#aa00ff', colN: 0xaa00ff, desc: 'One free process recovery on death',          anim: 'revive'   },
       { id: 'redundant_buf',  name: 'REDUNDANT_BUFFER', cost: 400, col: '#00aaff', colN: 0x00aaff, desc: '+1 shield hit on top of current tier',         anim: 'stackshield' },
       { id: 'heat_sink',      name: 'HEAT_SINK',        cost: 350, col: '#ff4400', colN: 0xff4400, desc: 'Overheat cooldown is 30% faster',              anim: 'heatsink'  },
+      { id: 'coolant_loop',   name: 'COOLANT_LOOP',     cost: 450, col: '#ff6600', colN: 0xff6600, desc: 'Bubble heat accumulates 25% slower',           anim: 'heatsink'  },
       { id: 'ghost_protocol', name: 'GHOST_PROTOCOL',   cost: 900, col: '#aaaaff', colN: 0xaaaaff, desc: '1s invisibility after overheat',               anim: 'ghost'     },
       { id: 'cooldown_patch', name: 'COOLDOWN_PATCH',   cost: 450, col: '#00ff88', colN: 0x00ff88, desc: 'Overheat lockout 3s to 1.8s',                  anim: 'cooldown'  },
       { id: 'regen_patch',    name: 'REGEN_PATCH',      cost: 600, col: '#00ff88', colN: 0x00ff88, desc: 'Restore 1 shield hit per wave clear',           anim: 'regen'     },
       { id: 'dash_patch',     name: 'DASH_PATCH',       cost: 400, col: '#00ff88', colN: 0x00ff88, desc: 'Dash cooldown 1.2s to 0.8s permanently',        anim: 'dash'      },
+      { id: 'thermal_bleed',  name: 'THERMAL_BLEED',    cost: 500, col: '#ff4400', colN: 0xff4400, desc: 'Overheat ring damages nearby enemies',          anim: 'heatsink'  },
+      { id: 'last_stand',     name: 'LAST_STAND',       cost: 500, col: '#ff2244', colN: 0xff2244, desc: 'Bubble expand rate +30% while shield is down',  anim: 'shield'    },
+      { id: 'kinetic_damper', name: 'KINETIC_DAMPER',   cost: 450, col: '#4488ff', colN: 0x4488ff, desc: 'Dash invincibility duration +0.3s',             anim: 'dash'      },
     ];
 
     this._survivalIndex = 0;
@@ -1193,6 +1820,11 @@ class ShopScene extends Phaser.Scene {
       { id: 'primed_signal', name: 'PRIMED_SIGNAL',   cost: 650, col: '#ff6600', colN: 0xff6600, desc: 'Signal meter starts 50% full each run',         anim: 'primed'  },
       { id: 'packet_router', name: 'PACKET_ROUTER',   cost: 500, col: '#00cc66', colN: 0x00cc66, desc: 'Ping cooldown reduced 15s to 10s',               anim: 'ping'    },
       { id: 'chain_patch',   name: 'CHAIN_PATCH',     cost: 500, col: '#00ff88', colN: 0x00ff88, desc: 'Chain reaction depth +1 permanently',            anim: 'chain'   },
+      { id: 'combo_memory',  name: 'COMBO_MEMORY',    cost: 400, col: '#ff88cc', colN: 0xff88cc, desc: 'Combo timer +0.5s (stacks with SLOW_COMBO)',    anim: 'score'   },
+      { id: 'shard_doubler', name: 'SHARD_DOUBLER',   cost: 600, col: '#ffdd00', colN: 0xffdd00, desc: 'Per-kill shard drops doubled',                  anim: 'score'   },
+      { id: 'boss_trace',    name: 'BOSS_TRACE',      cost: 500, col: '#aa44ff', colN: 0xaa44ff, desc: 'Score on boss kills x1.25',                     anim: 'score'   },
+      { id: 'perfect_reflect',name:'PERFECT_REFLECT', cost: 700, col: '#00ffcc', colN: 0x00ffcc, desc: 'After reflect-kill, next 2s score x2',          anim: 'chain'   },
+      { id: 'fragment_refinery',name:'FRAGMENT_REFINERY',cost:500,col:'#ffaa00',colN:0xffaa00,desc:'Unlocks shard→fragment conversion (5◈ = 1▲)',anim:'score'},
     ];
 
     this._combatIndex = 0;
@@ -1279,6 +1911,26 @@ class ShopScene extends Phaser.Scene {
     this._combatPrevY=PREV_Y;
 
     this._refreshCombatSelection();
+
+    // Fragment Refinery conversion button (only if owned)
+    if(Save.hasMeta('fragment_refinery')){
+      const cbX=LP+20,cbY=17;
+      const cbBtn=this.add.text(cbX,cbY,'[ CONVERT 5◈ → 1▲ ]',{fontFamily:"'Courier New',monospace",fontSize:'11px',fontStyle:'bold',color:'#ffaa00'}).setOrigin(0,0.5).setInteractive({useHandCursor:true});
+      this._reg('combat',cbBtn);
+      cbBtn.on('pointerover',()=>cbBtn.setColor('#ffdd00'));
+      cbBtn.on('pointerout',()=>cbBtn.setColor('#ffaa00'));
+      cbBtn.on('pointerdown',()=>{
+        if(Save.shards()>=5){
+          Save.addShards(-5);
+          Save.addFragments(1);
+          this._walletNum.setText(String(Save.shards()));
+          this.shardsT.setText(`◈ ${Save.shards()} SHARDS`);
+          this._msg('+1 FRAGMENT');
+        } else {
+          this._msg('INSUFFICIENT SHARDS');
+        }
+      });
+    }
   }
 
   _refreshCombatSelection(){
@@ -1980,7 +2632,7 @@ class ShopScene extends Phaser.Scene {
     this.t += delta / 1000;
 
     // Update scrollbar thumbs
-    ['bubble', 'survival', 'combat', 'powers'].forEach(tab => {
+    ['bubble', 'survival', 'combat'].forEach(tab => {
       (this._tabObjs[tab] || []).forEach(o => {
         if (o && o._sbThumb && o._maxScroll > 0) {
           const frac = o._scrollY / o._maxScroll;
@@ -2017,13 +2669,35 @@ class ShopScene extends Phaser.Scene {
       this._drawSurvivalAnim(g, this._survivalAnimT, m.anim, this._survivalPrevX, this._survivalPrevY);
     }
 
-    // Animate bubble preview
+    // Animate carousel-grid cards (when flag is on) — uses per-card Graphics
+    if (this._gridCards && this._gridCards[this._tab] && this._gridConfig && this._gridConfig[this._tab]) {
+      const cfg = this._gridConfig[this._tab];
+      const dt = delta / 1000;
+      this._gridCards[this._tab].forEach(card => {
+        card.animT += dt;
+        if (card.gfx && cfg.animFn) {
+          card.gfx.clear();
+          cfg.animFn(card.gfx, card.animT, card.item.anim);
+        }
+      });
+    }
+
+    // Animate bubble preview (legacy list — only when flag off)
     if (this._tab === 'bubble' && this._bubbleGfx && this._bubbleMeta) {
       this._bubbleAnimT += delta / 1000;
       const m = this._bubbleMeta[this._bubbleIndex];
       const g = this._bubbleGfx;
       g.clear();
       this._drawBubbleAnim(g, this._bubbleAnimT, m.anim, this._bubblePrevX, this._bubblePrevY);
+    }
+
+    // Animate archetype carousel preview (when unify is active)
+    if (this._tab === 'chassis' && this._archetypesGfx && this._archetypes) {
+      this._archetypesAnimT += delta / 1000;
+      const g = this._archetypesGfx;
+      g.clear();
+      this._drawArchetypePreview(g, this._archetypesAnimT);
+      return; // skip the old chassis ship animation below
     }
 
     // Animate chassis preview

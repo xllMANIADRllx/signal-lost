@@ -50,7 +50,10 @@ const CRT = {
     const H = window.innerHeight;
     c.clearRect(0, 0, W, H);
 
-    if (Settings.get('crt') && !this.suppress) {
+    // Heavy post-process passes (scanlines, vignette, chromatic, border) only
+    // render in GameScene — menu scenes set inGame=false so they skip these
+    // and only the cursor/crosshair (below) is drawn.
+    if (Settings.get('crt') && !this.suppress && this.inGame) {
       // Scanlines
       for (let y = 0; y < H; y += 3) {
         c.fillStyle = 'rgba(0,0,0,0.14)';

@@ -4,7 +4,7 @@
 
 class BossCutsceneScene extends Phaser.Scene{
   constructor(){super('BossCutsceneScene');}
-  create(d){
+  create(d = {}){
     this.cameras.main.fadeIn(250,0,0,0);
     const rect=this.add.rectangle(W/2,H/2,W,H,0x000000,0.92).setAlpha(0);this.tweens.add({targets:rect,alpha:1,duration:280});
     // Process injection matrix rain

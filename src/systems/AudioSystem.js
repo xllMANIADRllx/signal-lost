@@ -23,27 +23,25 @@ const Snd = {
     if (this.ready) return;
     this.ready = true;
     this.ctx    = new (window.AudioContext || window.webkitAudioContext)();
+    const _mv = Settings.get('music'), _sv = Settings.get('sfx');
     this.master = this.ctx.createGain(); this.master.gain.value = 0.65; this.master.connect(this.ctx.destination);
-    this.music  = this.ctx.createGain(); this.music.gain.value  = Settings.get('music'); this.music.connect(this.master);
-    this.sfx    = this.ctx.createGain(); this.sfx.gain.value    = Settings.get('sfx');   this.sfx.connect(this.master);
+    this.music  = this.ctx.createGain(); this.music.gain.value  = (typeof _mv === 'number') ? _mv : 0.35; this.music.connect(this.master);
+    this.sfx    = this.ctx.createGain(); this.sfx.gain.value    = (typeof _sv === 'number') ? _sv : 0.8;  this.sfx.connect(this.master);
 
     // ── SFX buffers ──
+    // SFX wav files are not bundled — play() falls back to procedural
+    // synthesis when buffers are missing, so we skip the preload entirely
+    // to avoid 18 spurious 404s at boot.
     this._sfxBuffer = {};
-    const SFX_FILES = ['reflect','chain','kill','death','boss','surge','shield',
-      'powerup','install','archetype','echo_hit','fragment','split','volatile',
-      'phase','rage','hit','shoot','laser'];
-    SFX_FILES.forEach(name => {
-      fetch(`assets/sfx/${name}.wav`)
-        .then(r => r.arrayBuffer())
-        .then(buf => this.ctx.decodeAudioData(buf))
-        .then(decoded => { this._sfxBuffer[name] = decoded; })
-        .catch(() => {});
-    });
 
     // ── Real music tracks ──
     this._trackSource = null;
-    this._trackBuffer = { menu: null, shop: null, network: null, codex: null, game1: null, game2: null, game3: null, game4: null, boss1: null, boss2: null, boss3: null, boss4: null };
+    this._trackBuffer = { menu: null, shop: null, network: null, codex: null,
+      game1: null, game2: null, game3: null, game4: null,
+      game5: null, game6: null, game7: null, game8: null, game9: null,
+      boss1: null, boss2: null, boss3: null, boss4: null };
     this._currentTrack = null;
+    this._lastGameTrack = null;
     this._loadTrack('menu',    'assets/music/menu.wav');
     this._loadTrack('shop',    'assets/music/shop.wav');
     this._loadTrack('network', 'assets/music/network.wav');
@@ -52,6 +50,11 @@ const Snd = {
     this._loadTrack('game2',   'assets/music/game2.wav');
     this._loadTrack('game3',   'assets/music/game3.wav');
     this._loadTrack('game4',   'assets/music/game4.wav');
+    this._loadTrack('game5',   'assets/music/game5.wav');
+    this._loadTrack('game6',   'assets/music/game6.wav');
+    this._loadTrack('game7',   'assets/music/game7.wav');
+    this._loadTrack('game8',   'assets/music/game8.wav');
+    this._loadTrack('game9',   'assets/music/game9.wav');
     this._loadTrack('boss1',   'assets/music/boss1.wav');
     this._loadTrack('boss2',   'assets/music/boss2.wav');
     this._loadTrack('boss3',   'assets/music/boss3.wav');
@@ -76,7 +79,7 @@ const Snd = {
         }
         // If this is a game track and game is running without a track, play it
         if (name.startsWith('game') && this._mode === 'game' && !this._currentTrack) {
-          this._playTrack(name);
+          this._playGameTrack(name);
         }
         // If this is a boss track and we are waiting for it
         if (name.startsWith('boss') && this._mode === 'boss' && this._pendingBossTrack === name && !this._currentTrack) {
@@ -86,14 +89,62 @@ const Snd = {
       .catch(() => {}); // fallback to procedural if file missing
   },
 
-  // ── Play a looping track ──
+  // ── Play a looping track (menu / shop / boss / codex / network) ──
   _playTrack(name) {
     if (!this.ctx || !this._trackBuffer[name]) { this._pendingTrack = name; return; }
     this._stopTrack();
+    // Reset music gain to user-configured volume — earlier scene fades could
+    // have left it ramped near zero (setTargetAtTime never reaches the target
+    // exactly, so back-to-back fades compound into silence).
+    try {
+      const vol = Settings.get('music');
+      const target = (typeof vol === 'number') ? vol : 0.35;
+      this.music.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.music.gain.setValueAtTime(target, this.ctx.currentTime);
+    } catch {}
     const src = this.ctx.createBufferSource();
     src.buffer = this._trackBuffer[name];
     src.loop   = true;
     src.connect(this.music);
+    src.start();
+    this._trackSource  = src;
+    this._currentTrack = name;
+  },
+
+  // ── Play a game track ONCE, then auto-roll to a different random one ──
+  // Game-mode only. Uses loop=false so onended fires when the track finishes
+  // naturally, then picks a fresh random track (preferring a different one
+  // than just played). _stopTrack() nulls _trackSource before stopping → the
+  // onended guard fails → no recursion when we manually stop.
+  _playGameTrack(name) {
+    if (!this.ctx || !this._trackBuffer[name]) { this._pendingTrack = name; return; }
+    this._stopTrack();
+    // Reset music gain to user-configured volume — same compounding-fade safeguard as _playTrack.
+    try {
+      const vol = Settings.get('music');
+      const target = (typeof vol === 'number') ? vol : 0.35;
+      this.music.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.music.gain.setValueAtTime(target, this.ctx.currentTime);
+    } catch {}
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._trackBuffer[name];
+    src.loop   = false;
+    src.connect(this.music);
+    this._lastGameTrack = name;
+    src.onended = () => {
+      if (this._trackSource !== src) return; // manual stop or scene change
+      if (this._mode !== 'game') return;
+      this._trackSource = null;
+      this._currentTrack = null;
+      const ALL = ['game1','game2','game3','game4','game5','game6','game7','game8','game9'];
+      const fresh = ALL.filter(k => this._trackBuffer[k] && k !== this._lastGameTrack);
+      const any   = ALL.filter(k => this._trackBuffer[k]);
+      const pool = fresh.length > 0 ? fresh : any;
+      if (pool.length > 0) {
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        this._playGameTrack(pick);
+      }
+    };
     src.start();
     this._trackSource  = src;
     this._currentTrack = name;
@@ -177,11 +228,12 @@ const Snd = {
     this._stopMenuMusic();
     this._stopTrack();
     this._mode = 'game'; this.bpm = 138; this.beat = 0;
-    // Pick a random available game track
-    const available = ['game1','game2','game3','game4'].filter(k => this._trackBuffer[k]);
+    // Pick a random available game track (from the 9-track pool)
+    const ALL = ['game1','game2','game3','game4','game5','game6','game7','game8','game9'];
+    const available = ALL.filter(k => this._trackBuffer[k]);
     if (available.length > 0) {
       const pick = available[Math.floor(Math.random() * available.length)];
-      this._playTrack(pick);
+      this._playGameTrack(pick);
     }
   },
 
@@ -205,7 +257,7 @@ const Snd = {
     if (!this.ready || this._mode !== 'boss') return;
     this._mode = 'game'; this.bpm = 138;
     this._stopTrack();
-    if (this._trackBuffer && this._trackBuffer['game']) { this._playTrack('game'); }
+    this.startGameMusic();
   },
 
   returnToMenu() {
@@ -360,6 +412,34 @@ const Snd = {
       case 'hit':       this._osc('square', 220, 0.18, sfx, now, now + 0.06, 110); break;
       case 'shoot':     this._osc('square', 330, 0.12, sfx, now, now + 0.04, 165); break;
       case 'laser':     this._osc('sine', 1200, 0.15, sfx, now, now + 0.08, 400); break;
+      // ── New cases for UI clicks and power activations ──
+      case 'click':     this._osc('square', 1200, 0.10, sfx, now, now + 0.06, 800); break;
+      case 'emp':       // white-noise crackle + descending sweep
+        try {
+          const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.2, this.ctx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+          const noise = this.ctx.createBufferSource(); noise.buffer = buf;
+          const ng = this.ctx.createGain(); ng.gain.value = 0.25;
+          noise.connect(ng); ng.connect(sfx); noise.start(now); noise.stop(now + 0.2);
+        } catch {}
+        this._osc('sawtooth', 880, 0.32, sfx, now, now + 0.28, 110);
+        this._osc('sine', 440, 0.18, sfx, now + 0.05, now + 0.28, 60);
+        break;
+      case 'void':      // bass implosion
+        this._osc('sine', 220, 0.42, sfx, now, now + 0.4, 40);
+        this._osc('sine', 55, 0.5, sfx, now + 0.05, now + 0.4, 110);
+        this._osc('sawtooth', 110, 0.2, sfx, now + 0.1, now + 0.35, 35);
+        break;
+      case 'corrupt':   // modulated distorted wave
+        this._osc('square', 440, 0.3, sfx, now, now + 0.32, 220);
+        this._osc('sawtooth', 220, 0.22, sfx, now + 0.05, now + 0.4, 880);
+        this._osc('square', 880, 0.16, sfx, now + 0.1, now + 0.35, 220);
+        break;
+      case 'decoy':     // quick double tap
+        this._osc('sine', 1047, 0.14, sfx, now, now + 0.08, 1319);
+        this._osc('sine', 880, 0.14, sfx, now + 0.08, now + 0.16, 1100);
+        break;
     }
   },
 

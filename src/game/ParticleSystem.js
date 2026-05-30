@@ -28,6 +28,24 @@ class ParticleSystem {
     }
   }
 
+  // ── Spawn directional cone of particles (reflect sparks, etc.) ──
+  spawnDirectionalParticles(x, y, dirAngle, spread = Math.PI * 0.4, count = 8, color = 0x00ffcc) {
+    for (let i = 0; i < count; i++) {
+      const a  = dirAngle + (Math.random() - 0.5) * spread;
+      const sp = 80 + Math.random() * 60;
+      this.particles.push({
+        x, y,
+        vx:    Math.cos(a) * sp,
+        vy:    Math.sin(a) * sp,
+        a:     1.0,
+        size:  1.5 + Math.random() * 2,
+        color,
+        life:  0.4 + Math.random() * 0.15,
+        t:     0,
+      });
+    }
+  }
+
   // ── Spawn expanding shock ring ──
   spawnShockRing(x, y, color, maxR = 100) {
     this.shockRings.push({ x, y, r: 0, maxR, color, a: 0.8, speed: maxR * 3 });
@@ -73,7 +91,7 @@ class ParticleSystem {
       r.r += r.speed * dt;
       r.a  = Math.max(0, r.a - dt * 2.5);
     });
-    this.shockRings = this.shockRings.filter(r => r.a > 0 && r.r < r.maxR);
+    this.shockRings = this.shockRings.filter(r => r.r < r.maxR && r.a > 0);
 
     // Fragments
     this.fragParts.forEach(f => {

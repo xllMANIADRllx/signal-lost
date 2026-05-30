@@ -5,7 +5,6 @@
 class OverclockScene extends Phaser.Scene{
   constructor(){super('OverclockScene');}
   create(data){
-    const W=1280,H=720;
     const mono="'Courier New',monospace", orb="'Orbitron',sans-serif";
 
     // Only show every 3 waves

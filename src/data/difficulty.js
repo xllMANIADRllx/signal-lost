@@ -11,6 +11,8 @@ const DIFFICULTY = {
     sniperInterval:     1.6,
     debugCost:          [50, 150, 300],
     scoreMulti:         0.8,
+    mutations:          0,
+    waveModFreq:        0,    // 0 = never roll wave modifiers
     memSectorsBullets:  'enemy_only', // only block enemy bullets
     desc:               'Reduced enemy speed · Faster heat vent · Lower debug cost',
   },
@@ -22,6 +24,8 @@ const DIFFICULTY = {
     sniperInterval:     1.3,
     debugCost:          [100, 300, 600],
     scoreMulti:         1.0,
+    mutations:          1,
+    waveModFreq:        4,    // every 4 waves
     memSectorsBullets:  'all',
     desc:               'Balanced · Standard experience · Recommended',
   },
@@ -33,6 +37,8 @@ const DIFFICULTY = {
     sniperInterval:     1.0,
     debugCost:          [200, 500, 1000],
     scoreMulti:         1.5,
+    mutations:          2,
+    waveModFreq:        2,    // every 2 waves
     memSectorsBullets:  'all_plus_player', // also slows player
     desc:               'Faster enemies · Slow heat vent · Score ×1.5',
   },

@@ -90,7 +90,7 @@ class DailyChallengeScene extends Phaser.Scene{
         fb.on('pointerdown',()=>{
           this.cameras.main.fadeOut(240,0,0,0);
           this.time.delayedCall(240,()=>{
-            this.scene.stop('MenuScene');
+            if(this.scene.isActive('MenuScene')||this.scene.isSleeping('MenuScene'))this.scene.stop('MenuScene');
             this.scene.start('ArchetypeSelectScene',{mode:'daily',challengeId:feat.id,challengeReward:feat.reward,challengeLabel:feat.label,challengeDesc:feat.desc,challengeDiff:feat.diff});
           });
         });
@@ -136,7 +136,7 @@ class DailyChallengeScene extends Phaser.Scene{
           sb.on('pointerdown',()=>{
             this.cameras.main.fadeOut(240,0,0,0);
             this.time.delayedCall(240,()=>{
-              this.scene.stop('MenuScene');
+              if(this.scene.isActive('MenuScene')||this.scene.isSleeping('MenuScene'))this.scene.stop('MenuScene');
               this.scene.start('ArchetypeSelectScene',{mode:'daily',challengeId:ch.id,challengeReward:ch.reward,challengeLabel:ch.label,challengeDesc:ch.desc,challengeDiff:ch.diff});
             });
           });

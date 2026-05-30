@@ -63,9 +63,34 @@ class RunSummaryScene extends Phaser.Scene{
       this.time.delayedCall(180,()=>deathTxt.setColor('#ff2244'));
     }});
 
+    // ── #15 Run Signature — headline best stat ──
+    const _sig=(()=>{
+      if(isNewBest)return{label:'NEW HIGH SCORE',value:score.toLocaleString(),col:'#ffd700',colN:0xffd700};
+      if(chain>=30)return{label:'COMBO VIRTUOSO',value:`×${chain} COMBO`,col:'#ff6600',colN:0xff6600};
+      if(reflected>=100)return{label:'REFLECT MASTER',value:`${reflected} REFLECTS`,col:'#4488ff',colN:0x4488ff};
+      if(kills>=150)return{label:'EXTERMINATOR',value:`${kills} KILLS`,col:'#ffdd00',colN:0xffdd00};
+      if(wave>=15)return{label:'DEEP RUNNER',value:`WAVE ${wave}`,col:'#aa44ff',colN:0xaa44ff};
+      if(score>0)return{label:'SIGNAL LOGGED',value:score.toLocaleString(),col:accentStr,colN:accentNum};
+      return null;
+    })();
+    const SIG_H=_sig?44:0;
+    if(_sig){
+      const sigBg=this.add.rectangle(W/2,74,W*0.7,SIG_H,_sig.colN,0.08).setOrigin(0.5,0).setAlpha(0);
+      sigBg.setStrokeStyle(1.5,_sig.colN,0.5);
+      const sigLbl=this.add.text(W/2,82,_sig.label,{fontFamily:"'Courier New',monospace",fontSize:'9px',color:_sig.col,letterSpacing:4}).setOrigin(0.5,0).setAlpha(0);
+      const sigVal=this.add.text(W/2,94,_sig.value,{fontFamily:"'Orbitron',sans-serif",fontSize:'20px',fontStyle:'900',color:_sig.col}).setOrigin(0.5,0).setAlpha(0);
+      this.time.delayedCall(80,()=>{
+        if(!this.scene.isActive('RunSummaryScene'))return;
+        [sigBg,sigLbl,sigVal].forEach(o=>this.tweens.add({targets:o,alpha:1,duration:350}));
+        if(isNewBest){
+          this.tweens.add({targets:sigVal,scaleX:{from:1,to:1.04},scaleY:{from:1,to:1.04},duration:600,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+        }
+      });
+    }
+
     // ── Stat cards 3×2 grid ──
     const CW=280, CH=74, GAPX=16, GAPY=12;
-    const GRID_Y=86;
+    const GRID_Y=86+SIG_H;
     const totalGridW=3*CW+2*GAPX;
     const gridX=(W-totalGridW)/2;
 
@@ -117,10 +142,14 @@ class RunSummaryScene extends Phaser.Scene{
     this.time.delayedCall(700,()=>{
       if(!this.scene.isActive('RunSummaryScene'))return;
       this.tweens.add({targets:stripBg,alpha:1,duration:180});
+      // ASCENSION badge inline with difficulty when N > 0
+      const ascN = (typeof D.ascension === 'number') ? D.ascension : 0;
+      const diffStr = (D.difficulty||'DAEMON').toUpperCase() + (ascN > 0 ? ` · A${ascN}` : '');
+      const diffCol = ascN > 0 ? '#ffd700' : '#ffdd00';
       const infos=[
         {label:'ARCHETYPE', val:archetype||'—',    col:'#00ffcc', x:gridX+20},
         {label:'SECTOR',    val:sectorName,         col:accentStr,  x:gridX+220},
-        {label:'DIFFICULTY',val:(D.difficulty||'DAEMON').toUpperCase(), col:'#ffdd00', x:gridX+500},
+        {label:'DIFFICULTY',val:diffStr,           col:diffCol,    x:gridX+500},
         {label:'DURATION',  val:fmt(timeAlive),     col:'#667788',  x:gridX+720},
       ];
       infos.forEach(inf=>{
@@ -130,8 +159,39 @@ class RunSummaryScene extends Phaser.Scene{
       });
     });
 
+    // ── Side objectives results (only when claimed any) ──
+    const sideRes = Array.isArray(D.sideObjResults) ? D.sideObjResults : [];
+    if(sideRes.length){
+      const SO_Y = STRIP_Y + 52;
+      this.time.delayedCall(820, () => {
+        if(!this.scene.isActive('RunSummaryScene')) return;
+        const soBg = this.add.rectangle(gridX, SO_Y, totalGridW, 20+sideRes.length*16, 0x10160a, 0.97).setOrigin(0,0).setAlpha(0);
+        soBg.setStrokeStyle(1, 0xccaa00, 0.35);
+        this.tweens.add({targets: soBg, alpha: 1, duration: 150});
+        const hdr = this.add.text(gridX + 12, SO_Y + 6, `◆ SIDE OBJECTIVES (${sideRes.length})`, {
+          fontFamily:"'Courier New',monospace", fontSize:'9px', color:'#ccaa00', letterSpacing:2
+        }).setAlpha(0);
+        this.tweens.add({targets: hdr, alpha: 1, duration: 150, delay: 80});
+        let totalBonus = 0;
+        sideRes.forEach((r, i) => {
+          totalBonus += (r.reward||0);
+          const row = this.add.text(gridX + 12, SO_Y + 20 + i*16, `  ☑  ${r.label}`, {
+            fontFamily:"'Courier New',monospace", fontSize:'11px', color:'#aaffaa'
+          }).setAlpha(0);
+          const rew = this.add.text(gridX + totalGridW - 12, SO_Y + 20 + i*16, `+${r.reward} ◈`, {
+            fontFamily:"'Courier New',monospace", fontSize:'11px', fontStyle:'bold', color:'#ffd700'
+          }).setOrigin(1, 0).setAlpha(0);
+          this.tweens.add({targets: [row, rew], alpha: 1, duration: 150, delay: 140 + i*50});
+        });
+        const totalTxt = this.add.text(gridX + totalGridW - 12, SO_Y + 6, `BONUS: +${totalBonus} ◈`, {
+          fontFamily:"'Courier New',monospace", fontSize:'9px', fontStyle:'bold', color:'#ffd700'
+        }).setOrigin(1, 0).setAlpha(0);
+        this.tweens.add({targets: totalTxt, alpha: 1, duration: 150, delay: 80});
+      });
+    }
+
     // ── Sector progress bar ──
-    const BAR_Y=STRIP_Y+52;
+    const BAR_Y = STRIP_Y + 52 + (sideRes.length ? (28 + sideRes.length*16) : 0);
     this.time.delayedCall(850,()=>{
       if(!this.scene.isActive('RunSummaryScene'))return;
       const barBg=this.add.rectangle(gridX,BAR_Y,totalGridW,20,0x030d06,0.97).setOrigin(0,0).setAlpha(0);
@@ -156,6 +216,34 @@ class RunSummaryScene extends Phaser.Scene{
           color:si<stage?STAGE_STRS[si]:si===stage?'#ff4466':'#1a3322'
         }).setOrigin(0.5).setAlpha(0);
         this.tweens.add({targets:stxt,alpha:1,duration:150,delay:si*60});
+      });
+    });
+
+    // ── Recent runs history ──
+    this.time.delayedCall(950,()=>{
+      if(!this.scene.isActive('RunSummaryScene'))return;
+      const hist=Save.runHistory();
+      // Skip index 0 — that's the run we just added in _endRun
+      const prev=hist.slice(1,6);
+      if(prev.length===0)return;
+      const HX=gridX,HY=BAR_Y+26,HW=totalGridW;
+      this.add.text(HX,HY,'// RECENT_RUNS',{fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#336644',letterSpacing:2}).setAlpha(0.7);
+      const RH=26;
+      this.add.text(HX+4,HY+12,'  WAVE   SCORE          MODE        ARCHETYPE    KILLS  STATUS',{
+        fontFamily:"'Courier New',monospace",fontSize:'9px',color:'#1a4422'
+      });
+      prev.forEach((r,ri)=>{
+        const ry=HY+26+ri*RH;
+        const isLast=ri===prev.length-1;
+        const rc=r.died?0x882222:0x226622;
+        const rcs=r.died?'#882222':'#226622';
+        this.add.rectangle(HX,ry,HW,RH-2,ri===0?0x001a0d:0x000000,ri===0?0.6:0.3).setOrigin(0,0).setStrokeStyle(0.5,rc,0.2);
+        const fmt2=(n,w)=>String(n).padStart(w,' ');
+        const modeTag=(r.mode||'NORM').toUpperCase().slice(0,8).padEnd(8,' ');
+        const archTag=(r.archetype||'—').toUpperCase().slice(0,10).padEnd(10,' ');
+        const line=`  W${fmt2(r.wave||0,3)}   ${fmt2(r.score||0,8).padStart(8,' ')}    ${modeTag}   ${archTag}  ${fmt2(r.kills||0,5)}  ${r.died?'TERMINATED':'CLEARED'}`;
+        this.add.text(HX+4,ry+7,line,{fontFamily:"'Courier New',monospace",fontSize:'9px',color:rcs});
+        if(!isLast)this.add.rectangle(HX,ry+RH-2,HW,1,0x0d2211,0.7).setOrigin(0,0);
       });
     });
 

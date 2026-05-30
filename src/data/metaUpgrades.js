@@ -88,4 +88,11 @@ const META_UPGRADES = [
     col:   0x44ffcc,
     desc:  'Start every run with 1 shield hit',
   },
+  {
+    id:   'start_score',
+    label: 'SCORE_SEED',
+    cost:  6,
+    col:   0xffaa00,
+    desc:  'Begin every run with score multiplier ×1.25',
+  },
 ];

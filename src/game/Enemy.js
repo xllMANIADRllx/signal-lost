@@ -41,18 +41,19 @@ class Enemy {
     this._isGhost     = false;
 
     // ── Apply mutations ──
+    this.wave = wave;
     this._mutations = [];
     mutations.forEach(m => this._applyMutation(m));
+
+    // Cache base speed AFTER spawn-time mutations (e.g. overclocked) so
+    // signal_decay can apply linearly without compounding each frame.
+    this._baseSpd = this.spd;
   }
 
   _applyMutation(mutation) {
     this._mutations.push(mutation.id);
     switch (mutation.id) {
-      case 'armored':      this.hp++; this.maxHp++; break;
-      case 'overclocked':  this.spd  *= 1.5; this.sInt *= 0.67; break;
-      case 'splitting':    break; // handled on death in EnemySpawner
       case 'magnetic':     break; // handled in bullet update
-      case 'volatile':     break; // handled on death
       case 'phase':        break; // handled in update
       case 'mirror':       break; // handled in bullet reflection
       case 'regenerating': break; // handled in update
@@ -81,7 +82,7 @@ class Enemy {
     if (this._decaySlowT > 0) {
       this._decaySlowT -= dt;
       const slowFactor = Math.max(0.7, 1 - this._decaySlowT * 0.02);
-      this.spd *= slowFactor;
+      this.spd = this._baseSpd * slowFactor;
     }
 
     // Regenerating mutation

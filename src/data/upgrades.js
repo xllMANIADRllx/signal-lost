@@ -63,7 +63,7 @@ const UPGRADES = {
     name:  'PACKET_CACHE',
     icon:  '▣',
     color: '#66cc88',
-    desc:  '5 kills within 3s grants 3 seconds of free reflect — no heat buildup.',
+    desc:  'Reflect bullets to earn free-reflect charges: Tier 1 every 8 (3s), Tier 2 every 6 (3s), Tier 3 every 4 (4s).',
   },
   null_shield: {
     name:  'NULL_SHIELD',
